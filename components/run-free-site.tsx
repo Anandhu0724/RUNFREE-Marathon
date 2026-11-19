@@ -12,19 +12,28 @@ const departments = ['Civil Engineering', 'Mechanical Engineering', 'Electrical 
 const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'PG / Other']
 const supabase = createClient()
 type Announcement = { id: string; title: string; message: string; created_at: string }
-type Runner = { user_id: string; full_name: string; email: string; phone: string; is_mbc: boolean; affiliation_kind: string; department: string | null; year_of_study: string | null; created_at: string }
+type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> }
+type Runner = { user_id: string; runner_number: number; full_name: string; email: string; phone: string; is_mbc: boolean; affiliation_kind: string; department: string | null; year_of_study: string | null; created_at: string }
 
 
 export default function RunFreeSite() {
   const [user, setUser] = useState<User | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [loginMode, setLoginMode] = useState(false)
+  const [organizerMode, setOrganizerMode] = useState(false)
   const [isMbc, setIsMbc] = useState('')
   const [memberType, setMemberType] = useState('student')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [runnerAction, setRunnerAction] = useState<'running' | 'jumping' | 'fallen' | 'getting-up'>('running')
+  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
   const { mutate } = useSWRConfig()
+  const { data: participantCount = 0 } = useSWR<number>('public-runner-count', async () => {
+    const { data, error } = await supabase.rpc('get_runner_count')
+    if (error) throw error
+    return Number(data ?? 0)
+  }, { refreshInterval: 30000 })
   const userId = user?.id ?? ''
   const { data: isAdmin = false } = useSWR<boolean>(userId ? ['admin', userId] : null, async () => {
     const { data, error } = await supabase.from('admin_members').select('user_id').eq('user_id', userId).maybeSingle()
@@ -37,22 +46,46 @@ export default function RunFreeSite() {
     return (data ?? []) as Announcement[]
   })
   const { data: runners = [] } = useSWR<Runner[]>(userId && isAdmin ? ['runners', userId] : null, async () => {
-    const { data, error } = await supabase.from('runner_profiles').select('user_id,full_name,email,phone,is_mbc,affiliation_kind,department,year_of_study,created_at').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('runner_profiles').select('user_id,runner_number,full_name,email,phone,is_mbc,affiliation_kind,department,year_of_study,created_at').eq('is_confirmed', true).order('runner_number', { ascending: true })
     if (error) throw error
     return (data ?? []) as Runner[]
-  })
+  }, { refreshInterval: 30000 })
   const [noticeTitle, setNoticeTitle] = useState('')
   const [noticeBody, setNoticeBody] = useState('')
   const { data: runnerProfile } = useSWR(userId ? ['profile', userId] as const : null, async () => {
-    const { data } = await supabase.from('runner_profiles').select('full_name').eq('user_id', userId).maybeSingle()
+    const { data } = await supabase.from('runner_profiles').select('full_name,runner_number').eq('user_id', userId).maybeSingle()
     return data
   })
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { setUser(data.session?.user ?? null); setAuthReady(true) })
+    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      void navigator.serviceWorker.register('/sw.js').catch(() => undefined)
+    }
+    const captureInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as InstallPromptEvent)
+    }
+    window.addEventListener('beforeinstallprompt', captureInstallPrompt)
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { setUser(data.session?.user ?? null); if (data.session?.user) void provisionOrganizerAccess(data.session.user); setAuthReady(true) })
     const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => setUser(session?.user ?? null))
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      listener.subscription.unsubscribe()
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
+    }
   }, [])
+
+  async function installApp() {
+    if (!installPrompt) return
+    await installPrompt.prompt()
+    await installPrompt.userChoice
+    setInstallPrompt(null)
+  }
+
+  async function provisionOrganizerAccess(currentUser: User) {
+    if (currentUser.email?.toLowerCase() !== 'ananthuk012@gmail.com') return
+    await supabase.rpc('claim_run_free_admin')
+    void mutate(['admin', currentUser.id])
+  }
 
   useEffect(() => {
     if (!userId) return
@@ -63,6 +96,14 @@ export default function RunFreeSite() {
     return () => { void supabase.removeChannel(channel) }
   }, [userId, isAdmin, mutate])
 
+  function playRunnerAction() {
+    if (runnerAction !== 'running') return
+    setRunnerAction('jumping')
+    window.setTimeout(() => setRunnerAction('fallen'), 450)
+    window.setTimeout(() => setRunnerAction('getting-up'), 1250)
+    window.setTimeout(() => setRunnerAction('running'), 1900)
+  }
+
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setMessage(''); setBusy(true)
     const form = new FormData(event.currentTarget)
@@ -72,22 +113,28 @@ export default function RunFreeSite() {
       if (loginMode) {
         const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
         if (authError) throw authError
-        setUser(data.user); setMessage('Welcome back. You are signed in.')
+        setUser(data.user); await provisionOrganizerAccess(data.user); setMessage('Welcome back. You are signed in.')
+      } else if (organizerMode) {
+        if (email !== 'ananthuk012@gmail.com') throw new Error('Organizer setup is available only for the designated organizer email.')
+        const { data, error: authError } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback` } })
+        if (authError) throw authError
+        if (data.session && data.user) { setUser(data.user); await provisionOrganizerAccess(data.user); setMessage('Organizer access is ready.') }
+        else setMessage('Organizer account created. Confirm the email using the link we sent, then sign in to open the admin desk.')
       } else {
         if (isMbc === '') throw new Error('Tell us whether you are part of MBC.')
-        const phone = String(form.get('phone') ?? '').replace(/[\\s-]/g, '').replace(/^\\+?91/, '')
+        const phone = String(form.get('phone') ?? '').replace(/[\s-]/g, '').replace(/^\+?91/, '')
         const fullName = String(form.get('full_name') ?? '').trim()
         const affiliation = isMbc === 'yes'
         const kind = affiliation ? memberType : 'other'
         const department = affiliation ? String(form.get('department') ?? '') : ''
         const year = affiliation && kind === 'student' ? String(form.get('year') ?? '') : ''
         const place = affiliation ? '' : String(form.get('place') ?? '').trim()
-        const emergency = String(form.get('emergency') ?? '').replace(/[\\s-]/g, '').replace(/^\\+?91/, '')
+        const emergency = String(form.get('emergency') ?? '').replace(/[\s-]/g, '').replace(/^\+?91/, '')
         const signature = String(form.get('signature_name') ?? '').trim()
         if (fullName.length < 2) throw new Error('Enter your full name (at least 2 characters).')
         if (!/^[6-9]\d{9}$/.test(phone)) throw new Error('Enter a valid 10-digit Indian mobile number.')
         if (password.length < 8) throw new Error('Use a password with at least 8 characters.')
-        if (emergency && !/^[6-9]\\d{9}$/.test(emergency)) throw new Error('Enter a valid 10-digit extra contact number.')
+        if (emergency && !/^[6-9]\d{9}$/.test(emergency)) throw new Error('Enter a valid 10-digit extra contact number.')
         if (signature.length < 2) throw new Error('Type your full name as your signature.')
         if (!affiliation && !place) throw new Error('Add your place of living.')
         if (affiliation && (!department || (kind === 'student' && !year))) throw new Error('Choose your department and year of study.')
@@ -131,9 +178,9 @@ export default function RunFreeSite() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand-lockup" href="#home" aria-label="Run Free home"><span className="brand-mark">RF</span><span>NSS UNIT 180 <i>·</i> MBCCET</span></a>
-        <nav aria-label="Main navigation"><a href="#home">Home</a><a href="#why">Why we run</a><a href="#route">The route</a><a href="#day">The day</a><a href="#contact">Contact</a></nav>
-        <a className="nav-register" href="#register">Register <span>↗</span></a>
+        <a className="brand-lockup" href="#home" aria-label="Run Free home"><img className="brand-mark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Report-facvuUvBWb6PFPFCnK8UuvV6ki03ar.png" alt="National Service Scheme emblem" /><span>NSS UNIT 180 <i>·</i> MBCCET</span></a>
+        <nav aria-label="Main navigation"><a href="#home">Home</a><a href="#why">Why we run</a><a href="#route">The route</a><a href="#day">The day</a><a href="#sponsor">Sponsor</a><a href="#contact">Contact</a></nav>
+        <div className="header-actions">{installPrompt && <button className="install-app" type="button" onClick={installApp}>Install app <span>↓</span></button>}<a className="nav-register" href="#register">Register <span>↗</span></a></div>
       </header>
 
       <section className="hero" id="home">
@@ -145,7 +192,7 @@ export default function RunFreeSite() {
           <p className="hero-subtitle">AGAINST SUBSTANCE ABUSE</p>
           <p className="hero-tagline">One community. One route. A brighter tomorrow.</p>
           <div className="hero-actions"><a className="button button-dark" href="#register">Join the run <span>↗</span></a><a className="button button-light" href="#route">Explore the route</a></div>
-          <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div><div><strong>ONE</strong><span>step toward a drug-free life</span></div></div>
+          <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div><div><strong>{participantCount}</strong><span>participants joined</span></div></div>
         </div>
         <div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /><div className="hero-wave" />
         <a className="scroll-cue" href="#why"><span /> SCROLL TO EXPLORE</a>
@@ -153,9 +200,13 @@ export default function RunFreeSite() {
 
       <div className="marquee" aria-label="Run free. Say no to drugs. Say yes to life."><div className="marquee-track">{Array.from({ length: 4 }, (_, i) => <span key={i}>RUN FREE <b>✳</b> SAY NO TO DRUGS <b>✳</b> SAY YES TO LIFE <b>✳</b> </span>)}</div></div>
 
+      <button type="button" className="runner-strip" onClick={playRunnerAction} aria-label="Tap to make the runner jump, fall, get up, and continue running">
+        <span className="runner-instruction">TAP THE RUNNER TO CHEER THEM ON</span><span className="runner-track" aria-hidden="true"><span className={`stick-runner ${runnerAction}`}><i className="runner-head"/><i className="runner-body"/><i className="runner-arm arm-one"/><i className="runner-arm arm-two"/><i className="runner-leg leg-one"/><i className="runner-leg leg-two"/></span></span><span className="runner-track-label">EVERY STEP MOVES US FORWARD</span>
+      </button>
+
       <section className="section why-section" id="why">
         <div className="section-kicker"><span>01</span> — WHY WE RUN</div>
-        <div className="why-grid"><div className="why-copy"><h2>SAY NO TO DRUGS,<br />SAY <em>YES TO LIFE</em></h2><p>RUN FREE brings students, faculty and our community together for a 5-kilometre stand against substance abuse. Organised by NSS Unit No. 180 with Nasha Mukt Bharat Abhiyan and Toofan Commandos.</p><p className="why-signature">A run for awareness. A movement for change.</p></div><div className="impact-cards"><article><span className="card-index">01 / MOVE</span><div className="impact-icon">↗</div><h3>Flashmobs</h3><p>High-energy performances that turn heads and start conversations.</p></article><article><span className="card-index">02 / SPEAK</span><div className="impact-icon">✳</div><h3>Nukkad Natak</h3><p>Street theatre bringing the realities of addiction into the open.</p></article><article><span className="card-index">03 / ACT</span><div className="impact-icon">◎</div><h3>Awareness</h3><p>Community-led action, one thoughtful step at a time.</p></article></div></div>
+        <div className="why-grid"><div className="why-copy"><h2>SAY NO TO DRUGS,<br />SAY <em>YES TO LIFE</em></h2><p>RUN FREE brings students, faculty and our community together for a 5-kilometre stand against substance abuse. Organised by NSS Unit No. 180 with Nasha Mukt Bharat Abhiyan and Toofan Commandos.</p><p className="why-signature">A run for awareness. A movement for change.</p></div><div className="impact-cards"><article className="impact-card-image"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/360_F_1846584061_F3DhSDviVw94bCi0fQwMXRmKeTKKidxe-mxz9JPqKig43ozpedqhcTb8qjPTult.jpg" alt="Young people performing an energetic community dance" /><span className="card-index">01 / MOVE</span><h3>Flashmobs</h3><p>High-energy performances that turn heads and start conversations.</p></article><article className="impact-card-image"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/dcim-drug-street-play--5--oq7PnuqX9DlmG62UiYOuX5ek2DG8u9.jpg" alt="A street theatre performance bringing a community together" /><span className="card-index">02 / SPEAK</span><h3>Nukkad Natak</h3><p>Street theatre bringing the realities of addiction into the open.</p></article><article className="impact-card-image"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp-Image-2026-08-12-at-8.05.12-AM-63rxjr3AismHoFuVNp7Vplm8ybx1uZ.jpeg" alt="Students holding anti-drug awareness signs at a college event" /><span className="card-index">03 / ACT</span><h3>Awareness</h3><p>Community-led action, one thoughtful step at a time.</p></article></div></div>
       </section>
 
       <section className="route-section" id="route"><div className="section route-layout"><div className="route-intro"><div className="section-kicker"><span>02</span> — THE ROUTE</div><div className="distance">5<span>KM</span></div><h2>KUTTIKKANAM <span>→</span><br />MBC COLLEGE</h2><p>A 5 km community run with refreshment points at every 2 km.</p><a className="route-link" href="https://www.google.com/maps/dir/Kuttikkanam+Town/Mar+Baselios+Christian+College+of+Engineering+and+Technology,+Peermade" target="_blank" rel="noreferrer">Open directions in Google Maps <span>↗</span></a><p className="route-caveat">Map line is indicative. Check Google Maps for turn-by-turn directions.</p></div><RunFreeMap /></div></section>
@@ -170,21 +221,21 @@ export default function RunFreeSite() {
         <div className="form-card">
           {!authReady ? <div className="loading-copy">Getting things ready…</div> : user ? <>
             <div className="signed-in-top"><div><div className="section-kicker"><span>WELCOME</span> — RUNNER ACCOUNT</div><h3>Hey, {greeting}.</h3></div><button type="button" className="text-button" onClick={signOut}>Sign out</button></div>
-            <div className="account-status"><span className="status-check">✓</span><div><strong>You’re on the list.</strong><p>Signed in as {user.email}. Organiser updates will appear here live.</p></div></div>
+            <div className="account-status"><span className="status-check">✓</span><div><strong>{isAdmin ? 'Organizer access is active.' : 'You’re on the list.'}</strong><p>Signed in as {user.email}. {runnerProfile?.runner_number ? <>Your participant number is <b className="participant-number">RF{String(runnerProfile.runner_number).padStart(3, '0')}</b>. </> : isAdmin ? 'This account is not counted as a participant. ' : 'Loading your participant number. ' }Organiser updates will appear here live.</p></div></div>
             {message && <p className="form-message" role="status">{message}</p>}{error && <p className="form-error" role="alert">{error}</p>}
             <div className="updates-heading"><span className="live-dot" /> ORGANISER UPDATES <span className="updates-live">LIVE</span></div>
             {announcements.length ? <div className="announcement-list">{(announcements as Announcement[]).map((notice) => <article className="announcement" key={notice.id}><div className="announcement-date">{new Date(notice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div><h4>{notice.title}</h4><p>{notice.message}</p></article>)}</div> : <div className="empty-updates">No updates yet. Check back here for announcements from the organisers.</div>}
-            {isAdmin && <div className="admin-panel"><div className="admin-heading"><div><span className="section-kicker">ADMIN DESK</span><h3>Runner monitor</h3></div><span className="admin-count">{(runners as Runner[]).length} registered</span></div><div className="runner-table-wrap"><table className="runner-table"><thead><tr><th>Runner</th><th>Email</th><th>Phone</th><th>Affiliation</th><th>Registered</th></tr></thead><tbody>{(runners as Runner[]).map((runner) => <tr key={runner.user_id}><td>{runner.full_name}</td><td>{runner.email}</td><td>{runner.phone}</td><td>{runner.is_mbc ? `${runner.affiliation_kind}${runner.department ? ` · ${runner.department}` : ''}${runner.year_of_study ? ` · ${runner.year_of_study}` : ''}` : 'Community'}</td><td>{new Date(runner.created_at).toLocaleDateString('en-IN')}</td></tr>)}</tbody></table></div><form className="notice-form" onSubmit={publishNotice}><label>Post an update<input value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} maxLength={120} required placeholder="Update title" /></label><label>Message<textarea value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Write an update for registered runners…" /></label><button className="button button-dark" type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish update'} <span>↗</span></button></form></div>}
+            {isAdmin && <div className="admin-panel"><div className="admin-heading"><div><span className="section-kicker">ADMIN DESK</span><h3>Runner monitor</h3></div><span className="admin-count">{(runners as Runner[]).length} registered</span></div><div className="runner-table-wrap"><table className="runner-table"><thead><tr><th>Runner ID</th><th>Runner</th><th>Email</th><th>Phone</th><th>Affiliation</th><th>Registered</th></tr></thead><tbody>{(runners as Runner[]).map((runner) => <tr key={runner.user_id}><td><b className="participant-number">RF{String(runner.runner_number).padStart(3, '0')}</b></td><td>{runner.full_name}</td><td>{runner.email}</td><td>{runner.phone}</td><td>{runner.is_mbc ? `${runner.affiliation_kind}${runner.department ? ` · ${runner.department}` : ''}${runner.year_of_study ? ` · ${runner.year_of_study}` : ''}` : 'Community'}</td><td>{new Date(runner.created_at).toLocaleDateString('en-IN')}</td></tr>)}</tbody></table></div><form className="notice-form" onSubmit={publishNotice}><label>Post an update<input value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} maxLength={120} required placeholder="Update title" /></label><label>Message<textarea value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Write an update for registered runners…" /></label><button className="button button-dark" type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish update'} <span>↗</span></button></form></div>}
           </> : <>
-            <div className="form-card-head"><div className="step-mark">RUN FREE <span>/ RUNNER REGISTRATION</span></div><h3>{loginMode ? 'Welcome back.' : 'Join the starting line.'}</h3><p>{loginMode ? 'Sign in to see your registration and event updates.' : 'Tell us a little about yourself to register.'}</p></div>
+            <div className="form-card-head"><div className="step-mark">RUN FREE <span>/ {organizerMode ? 'ORGANIZER ACCESS' : 'RUNNER REGISTRATION'}</span></div><h3>{organizerMode ? 'Organizer access.' : loginMode ? 'Welcome back.' : 'Join the starting line.'}</h3><p>{organizerMode ? 'Create the designated organizer account. Participant details are not collected for admin access.' : loginMode ? 'Sign in to see your registration and event updates.' : 'Tell us a little about yourself to register.'}</p></div>
             <form className="registration-form" onSubmit={handleAuth}>
-              {!loginMode && <>
+              {!loginMode && !organizerMode && <>
                 <label>Full name<input name="full_name" type="text" autoComplete="name" minLength={2} maxLength={80} placeholder="Your full name" required /></label>
               </>}
               <label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>
-              {!loginMode && <label>Mobile number<input name="phone" type="tel" autoComplete="tel" placeholder="10-digit mobile number" required /></label>}
+              {!loginMode && !organizerMode && <label>Mobile number<input name="phone" type="tel" autoComplete="tel" placeholder="10-digit mobile number" required /></label>}
               <label>Password<input name="password" type="password" autoComplete={loginMode ? 'current-password' : 'new-password'} minLength={8} placeholder="At least 8 characters" required /></label>
-              {!loginMode && <>
+              {!loginMode && !organizerMode && <>
                 <fieldset className="choice-field"><legend>Are you part of MBC?</legend><div className="choice-row"><button type="button" className={isMbc === 'yes' ? 'choice selected' : 'choice'} onClick={() => setIsMbc('yes')}>Yes, I am</button><button type="button" className={isMbc === 'no' ? 'choice selected' : 'choice'} onClick={() => setIsMbc('no')}>No, I’m a guest</button></div></fieldset>
                 {isMbc === 'yes' && <div className="field-grid"><label>I am a<select value={memberType} onChange={(event) => setMemberType(event.target.value)}><option value="student">Student</option><option value="faculty">Faculty</option></select></label><label>Department<select name="department" required><option value="">Choose department</option>{departments.map((department) => <option key={department}>{department}</option>)}</select></label>{memberType === 'student' && <label>Year of study<select name="year" required><option value="">Choose year</option>{years.map((year) => <option key={year}>{year}</option>)}</select></label>}</div>}
                 {isMbc === 'no' && <label>Place of living<input name="place" type="text" maxLength={160} placeholder="Town / locality" required /></label>}
@@ -193,12 +244,14 @@ export default function RunFreeSite() {
                 <label>Type your full name as your signature<input name="signature_name" type="text" minLength={2} maxLength={80} placeholder="Your full name" required /></label>
               </>}
               {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-message" role="status">{message}</p>}
-              <button className="button button-dark form-submit" disabled={busy} type="submit">{busy ? 'Please wait…' : loginMode ? 'Sign in' : 'Create my account'} <span>↗</span></button>
+              <button className="button button-dark form-submit" disabled={busy} type="submit">{busy ? 'Please wait…' : organizerMode ? 'Create organizer account' : loginMode ? 'Sign in' : 'Create my account'} <span>↗</span></button>
             </form>
-            <p className="form-switch">{loginMode ? 'New to the run?' : 'Already registered?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create an account' : 'Sign in'}</button></p>
+            <p className="form-switch">{organizerMode ? <>Need to register for the run? <button type="button" onClick={() => { setOrganizerMode(false); setLoginMode(false); setError(''); setMessage('') }}>Participant registration</button></> : <>{loginMode ? 'New to the run?' : 'Already registered?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create an account' : 'Sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(true); setLoginMode(false); setError(''); setMessage('') }}>Organizer account setup</button></>}</p>
           </>}
         </div>
       </div></section>
+
+      <section className="sponsor-section" id="sponsor"><div className="section sponsor-layout"><div><div className="section-kicker"><span>05</span> — PARTNER WITH PURPOSE</div><h2>FUEL THE<br/><em>CHANGE.</em></h2><p>We welcome financial sponsorship and in-kind support—from refreshments and medical kits to printing, media coverage and volunteer time. Every contribution helps build a stronger, addiction-free community.</p></div><div className="sponsor-contact"><span className="sponsor-label">SPONSORSHIP &amp; SUPPORT</span><h3>Prof. Baiju George</h3><p>NSS Programming Officer · Unit No. 180</p><a href="tel:+919778521538">+91 97785 21538</a><a href="mailto:baijugeorge@mbcpeermade.com?subject=RUN%20FREE%20Sponsorship%20Enquiry">baijugeorge@mbcpeermade.com</a><p className="sponsor-address">Mar Baselios Christian College of Engineering &amp; Technology, Peermade, Kuttikkanam, Idukki, 685531.</p><a className="button button-lime" href="mailto:baijugeorge@mbcpeermade.com?subject=RUN%20FREE%20Sponsorship%20Enquiry">Discuss sponsorship <span>↗</span></a></div></div></section>
 
       <section className="contact-section" id="contact"><div className="contact-card"><div className="section-kicker">QUESTIONS ABOUT THE RUN?</div><h2>LET’S TALK.</h2><a href="tel:+919994420724" className="contact-phone">+91 99944 20724</a><div className="contact-actions"><a className="button button-lime" href="tel:+919994420724">Call us <span>↗</span></a><a className="button button-light" href="https://wa.me/919994420724" target="_blank" rel="noreferrer">WhatsApp</a></div></div></section>
 

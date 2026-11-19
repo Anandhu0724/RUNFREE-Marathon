@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'RUN FREE 2027 — Against Substance Abuse',
   description: 'Join RUN FREE, a 5 km community run from Kuttikkanam Town to MBCCET on 12 January 2027. Run for a cause: say no to drugs, say yes to life.',
   applicationName: 'RUN FREE',
+  manifest: '/manifest.webmanifest',
   openGraph: {
     title: 'RUN FREE 2027 — Against Substance Abuse',
     description: 'A community run from Kuttikkanam Town to MBCCET on 12 January 2027.',
