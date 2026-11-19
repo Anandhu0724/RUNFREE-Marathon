@@ -181,8 +181,7 @@ export default function RunFreeSite() {
         <div className="hero-lines" />
         <div className="hero-content">
           <p className="eyebrow hero-eyebrow">MAR BASELIOS CHRISTIAN COLLEGE · IN ASSOCIATION WITH TOOFAN COMMANDOS</p>
-          <h1>RUN <span>FREE</span></h1>
-          <p className="hero-subtitle">AGAINST SUBSTANCE ABUSE</p>
+          <h1 className="hero-title"><img src="/run-free-hero-lockup.png" alt="Run Free — Marathon Against Substance Abuse" className="hero-lockup" /></h1>
           <p className="hero-tagline">One community. One route. A brighter tomorrow.</p>
           <div className="hero-actions"><a className="button button-dark" href="#register">Join the run <span>↗</span></a><a className="button button-light" href="#route">Explore the route</a></div>
           <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div><div><strong>{participantCount}</strong><span>participants joined</span></div></div>
@@ -194,7 +193,7 @@ export default function RunFreeSite() {
       <div className="marquee" aria-label="Run free. Say no to drugs. Say yes to life."><div className="marquee-track">{Array.from({ length: 4 }, (_, i) => <span key={i}>RUN FREE <b>✳</b> SAY NO TO DRUGS <b>✳</b> SAY YES TO LIFE <b>✳</b> </span>)}</div></div>
 
       <section className="run-free-signoff" aria-label="Run Free">
-        <img src="/run-free-mark.png" alt="Run Free" />
+        <img src="/run-free-band-mark.png" alt="Run Free" />
       </section>
 
       <section className="section why-section" id="why">
