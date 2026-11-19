@@ -113,17 +113,12 @@ export default function RunFreeSite() {
     const password = String(form.get('password') ?? '')
     try {
       if (loginMode) {
+        if (organizerMode && email !== 'ananthuk012@gmail.com') throw new Error('Use the designated organizer email to sign in.')
         const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
         if (authError) throw authError
         setUser(data.user)
         const hasOrganizerAccess = await provisionOrganizerAccess(data.user)
         setMessage(hasOrganizerAccess ? 'Organizer access is ready. The participant list and announcement tools are available below.' : 'Welcome back. You are signed in.')
-      } else if (organizerMode) {
-        if (email !== 'ananthuk012@gmail.com') throw new Error('Organizer setup is available only for the designated organizer email.')
-        const { data, error: authError } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback` } })
-        if (authError) throw authError
-        if (data.session && data.user) { setUser(data.user); await provisionOrganizerAccess(data.user); setMessage('Organizer access is ready.') }
-        else setMessage('Organizer account created. Confirm the email using the link we sent, then sign in to open the admin desk.')
       } else {
         if (isMbc === '') throw new Error('Tell us whether you are part of MBC.')
         const phone = String(form.get('phone') ?? '').replace(/[\s-]/g, '').replace(/^\+?91/, '')
@@ -234,14 +229,14 @@ export default function RunFreeSite() {
             {announcements.length ? <div className="announcement-list">{(announcements as Announcement[]).map((notice) => <article className="announcement" key={notice.id}><div className="announcement-date">{new Date(notice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div><h4>{notice.title}</h4><p>{notice.message}</p></article>)}</div> : <div className="empty-updates">No updates yet. Check back here for announcements from the organisers.</div>}
             {isAdmin && <div className="admin-panel"><div className="admin-heading"><div><span className="section-kicker">ADMIN DESK</span><h3>Runner monitor</h3></div><span className="admin-count">{(runners as Runner[]).length} registered</span></div><div className="runner-table-wrap"><table className="runner-table"><thead><tr><th>Runner ID</th><th>Runner</th><th>Email</th><th>Phone</th><th>Affiliation</th><th>Place</th><th>Extra contact</th><th>Registered</th></tr></thead><tbody>{(runners as Runner[]).map((runner) => <tr key={runner.user_id}><td><b className="participant-number">RF{String(runner.runner_number).padStart(3, '0')}</b></td><td>{runner.full_name}</td><td>{runner.email}</td><td>{runner.phone}</td><td>{runner.is_mbc ? `${runner.affiliation_kind}${runner.department ? ` · ${runner.department}` : ''}${runner.year_of_study ? ` · ${runner.year_of_study}` : ''}` : 'Community'}</td><td>{runner.place_of_living || '—'}</td><td>{runner.emergency_phone || '—'}</td><td>{new Date(runner.created_at).toLocaleDateString('en-IN')}</td></tr>)}</tbody></table></div><form className="notice-form" onSubmit={publishNotice}><label>Post an update<input value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} maxLength={120} required placeholder="Update title" /></label><label>Message<textarea value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Write an update for registered runners…" /></label><button className="button button-dark" type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish update'} <span>↗</span></button></form></div>}
           </> : <>
-            <div className="form-card-head"><div className="step-mark">RUN FREE <span>/ {organizerMode ? 'ORGANIZER ACCESS' : 'RUNNER REGISTRATION'}</span></div><h3>{organizerMode ? 'Organizer access.' : loginMode ? 'Welcome back.' : 'Join the starting line.'}</h3><p>{organizerMode ? (loginMode ? 'Sign in with the designated organizer account to open the admin desk.' : 'Create the designated organizer account. Participant details are not collected for admin access.') : loginMode ? 'Sign in to see your registration and event updates.' : 'Tell us a little about yourself to register.'}</p></div>
+            <div className="form-card-head"><div className="step-mark">RUN FREE <span>/ {organizerMode ? 'ORGANIZER ACCESS' : 'RUNNER REGISTRATION'}</span></div><h3>{organizerMode ? 'Organizer sign in.' : loginMode ? 'Welcome back.' : 'Join the starting line.'}</h3><p>{organizerMode ? 'Sign in with the designated organizer account to open the admin desk.' : loginMode ? 'Sign in to see your registration and event updates.' : 'Tell us a little about yourself to register.'}</p></div>
             <form className="registration-form" onSubmit={handleAuth}>
               {!loginMode && !organizerMode && <>
                 <label>Full name<input name="full_name" type="text" autoComplete="name" minLength={2} maxLength={80} placeholder="Your full name" required /></label>
               </>}
-              <label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>
+              <label>Email address<input name="email" type="email" autoComplete="email" defaultValue={organizerMode ? 'ananthuk012@gmail.com' : undefined} readOnly={organizerMode} placeholder="you@example.com" required /></label>
               {!loginMode && !organizerMode && <label>Mobile number<input name="phone" type="tel" autoComplete="tel" placeholder="10-digit mobile number" required /></label>}
-              <label>Password<input name="password" type="password" autoComplete={loginMode ? 'current-password' : 'new-password'} minLength={8} placeholder="At least 8 characters" required /></label>
+              <label>Password<input name="password" type="password" autoComplete={loginMode ? 'current-password' : 'new-password'} minLength={loginMode ? undefined : 8} placeholder={loginMode ? 'Your password' : 'At least 8 characters'} required /></label>
               {!loginMode && !organizerMode && <>
                 <fieldset className="choice-field"><legend>Are you part of MBC?</legend><div className="choice-row"><button type="button" className={isMbc === 'yes' ? 'choice selected' : 'choice'} onClick={() => setIsMbc('yes')}>Yes, I am</button><button type="button" className={isMbc === 'no' ? 'choice selected' : 'choice'} onClick={() => setIsMbc('no')}>No, I’m a guest</button></div></fieldset>
                 {isMbc === 'yes' && <div className="field-grid"><label>I am a<select value={memberType} onChange={(event) => setMemberType(event.target.value)}><option value="student">Student</option><option value="faculty">Faculty</option></select></label><label>Department<select name="department" required><option value="">Choose department</option>{departments.map((department) => <option key={department}>{department}</option>)}</select></label>{memberType === 'student' && <label>Year of study<select name="year" required><option value="">Choose year</option>{years.map((year) => <option key={year}>{year}</option>)}</select></label>}</div>}
@@ -251,9 +246,9 @@ export default function RunFreeSite() {
                 <label>Type your full name as your signature<input name="signature_name" type="text" minLength={2} maxLength={80} placeholder="Your full name" required /></label>
               </>}
               {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-message" role="status">{message}</p>}
-              <button className="button button-dark form-submit" disabled={busy} type="submit">{busy ? 'Please wait…' : organizerMode ? (loginMode ? 'Sign in to admin desk' : 'Create organizer account') : loginMode ? 'Sign in' : 'Create my account'} <span>↗</span></button>
+              <button className="button button-dark form-submit" disabled={busy} type="submit">{busy ? 'Please wait…' : organizerMode ? 'Sign in to admin desk' : loginMode ? 'Sign in' : 'Create my account'} <span>↗</span></button>
             </form>
-            <p className="form-switch">{organizerMode ? <> {loginMode ? 'Need an organizer account?' : 'Already set up as organizer?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create organizer account' : 'Organizer sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(false); setLoginMode(false); setError(''); setMessage('') }}>Participant registration</button></> : <>{loginMode ? 'New to the run?' : 'Already registered?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create an account' : 'Sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(true); setLoginMode(false); setError(''); setMessage('') }}>Organizer access</button></>}</p>
+            <p className="form-switch">{organizerMode ? <button type="button" onClick={() => { setOrganizerMode(false); setLoginMode(false); setError(''); setMessage('') }}>Participant registration</button> : <>{loginMode ? 'New to the run?' : 'Already registered?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create an account' : 'Sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(true); setLoginMode(true); setError(''); setMessage('') }}>Organizer access</button></>}</p>
           </>}
         </div>
       </div></section>
