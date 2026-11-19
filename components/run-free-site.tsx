@@ -189,7 +189,7 @@ export default function RunFreeSite() {
 
       <section className="hero" id="home">
         <video className="hero-video" autoPlay muted loop playsInline aria-hidden="true" tabIndex={-1}>
-          <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/motion_video_99307356-6aQVaZgezKbAiC8zBkZL5kGafIvxd4.mp4" type="video/mp4" />
+          <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/motion_video_99307356_1080p-eJtuKH0Iva9VnEZPaztxQf0AR0JhPx.mp4" type="video/mp4" />
         </video>
         <div className="hero-glow" />
         <div className="hero-lines" />
