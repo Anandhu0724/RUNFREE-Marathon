@@ -227,17 +227,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .impact-card-image .card-index { color: var(--lime); }
 .impact-card-image h3 { margin: 10px 0 7px; font-size: 23px; }
 .impact-card-image p { color: rgba(255,255,255,.88); font-size: 11px; }
-.runner-strip { width: 100%; min-height: 136px; padding: 14px 6%; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border: 0; background: #f3f7fd; color: var(--navy); cursor: pointer; text-align: left; }
-.runner-instruction, .runner-track-label { font-size: 8px; letter-spacing: .16em; font-weight: 850; }
-.runner-track { position: relative; display: block; height: 64px; overflow: hidden; border-bottom: 2px solid rgba(14,18,80,.28); background-color: #f3f7fd; background-image: repeating-linear-gradient(90deg, transparent 0 44px, rgba(14,18,80,.12) 45px 46px); }
-.runner-travel { position: absolute; left: 0; bottom: 0; width: 220px; height: 64px; animation: runner-travel 6s linear infinite alternate; }
-.runner-travel:has(.runner-image.falling, .runner-image.getting-up) { animation-play-state: paused; }
-.runner-image { position: absolute; top: -29px; left: 0; display: block; width: 220px; height: auto; transform-origin: center bottom; mix-blend-mode: multiply; }
-.runner-image.falling { animation: runner-fall .85s ease-in forwards; }
-.runner-image.getting-up { animation: runner-rise .75s ease-out forwards; }
-@keyframes runner-travel { from { left: 0; } to { left: calc(100% - 220px); } }
-@keyframes runner-fall { to { transform: rotate(82deg) translateY(8px); } }
-@keyframes runner-rise { 45% { transform: rotate(65deg) translateY(5px); } 100% { transform: rotate(0) translateY(0); } }
+.run-free-signoff { min-height: 136px; padding: 24px 6%; display: flex; align-items: center; justify-content: center; background: #f3f7fd; }
+.run-free-signoff img { display: block; width: min(460px, 80vw); height: auto; }
 .participant-number { color: #327b16; white-space: nowrap; }
 .sponsor-section { padding: 100px 0; background: #f2f6ed; }
 .sponsor-layout { display: grid; grid-template-columns: 1fr .85fr; align-items: center; gap: 72px; }
@@ -264,8 +255,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .install-app { display: none; }
   .impact-cards article.impact-card-image { min-height: 220px; display: flex; padding: 18px; }
   .impact-card-image img { object-fit: cover; }
-  .runner-strip { padding-inline: 6%; }
-  .runner-track { height: 58px; }
   .sponsor-section { padding: 72px 0; }
   .sponsor-layout { grid-template-columns: 1fr; gap: 25px; }
   .sponsor-contact { padding: 25px; }

@@ -26,7 +26,6 @@ export default function RunFreeSite() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [runnerAction, setRunnerAction] = useState<'running' | 'falling' | 'getting-up'>('running')
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
   const { mutate } = useSWRConfig()
   const { data: participantCount = 0 } = useSWR<number>('public-runner-count', async () => {
@@ -97,13 +96,6 @@ export default function RunFreeSite() {
       .subscribe()
     return () => { void supabase.removeChannel(channel) }
   }, [userId, isAdmin, mutate])
-
-  function playRunnerAction() {
-    if (runnerAction !== 'running') return
-    setRunnerAction('falling')
-    window.setTimeout(() => setRunnerAction('getting-up'), 850)
-    window.setTimeout(() => setRunnerAction('running'), 1600)
-  }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(''); setMessage(''); setBusy(true)
@@ -201,9 +193,9 @@ export default function RunFreeSite() {
 
       <div className="marquee" aria-label="Run free. Say no to drugs. Say yes to life."><div className="marquee-track">{Array.from({ length: 4 }, (_, i) => <span key={i}>RUN FREE <b>✳</b> SAY NO TO DRUGS <b>✳</b> SAY YES TO LIFE <b>✳</b> </span>)}</div></div>
 
-      <button type="button" className="runner-strip" onClick={playRunnerAction} aria-label="Touch the runner to trigger a fall and recovery animation">
-        <span className="runner-instruction">TOUCH THE RUNNER TO MAKE IT FALL</span><span className="runner-track" aria-hidden="true"><span className="runner-travel"><img className={`runner-image ${runnerAction}`} src="/stickman-running-falling.gif" alt="" draggable={false} /></span></span><span className="runner-track-label">EVERY STEP MOVES US FORWARD</span>
-      </button>
+      <section className="run-free-signoff" aria-label="Run Free">
+        <img src="/run-free-mark.png" alt="Run Free" />
+      </section>
 
       <section className="section why-section" id="why">
         <div className="section-kicker"><span>01</span> — WHY WE RUN</div>
