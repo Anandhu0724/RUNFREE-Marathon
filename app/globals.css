@@ -76,7 +76,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .section-kicker span { color: #1478ff; }
 .why-grid { margin-top: 26px; display: grid; grid-template-columns: 1.02fr 1fr; gap: 55px; align-items: center; }
 .why-copy h2, .day-heading h2, .register-intro h2 { margin: 0; font: clamp(43px, 6vw, 76px)/.93 var(--display); letter-spacing: -.01em; }
-.why-copy h2 em, .day-heading h2 em, .register-intro h2 em { font-style: normal; background: var(--lime); padding: 0 .1em; }
+.why-copy h2 em, .day-heading h2 em, .register-intro h2 em { padding: 0; color: var(--lime); font-style: normal; background: transparent; }
 .why-copy p { max-width: 520px; margin: 25px 0 0; color: #273456; font-size: 13px; line-height: 1.9; }
 .why-copy .why-signature { margin-top: 16px; font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 .impact-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -230,7 +230,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .runner-strip { width: 100%; min-height: 136px; padding: 14px 6%; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border: 0; background: var(--navy); color: var(--lime); cursor: pointer; text-align: left; }
 .runner-instruction, .runner-track-label { font-size: 8px; letter-spacing: .16em; font-weight: 850; }
 .runner-track { position: relative; display: block; height: 64px; overflow: hidden; border-bottom: 2px solid rgba(255,255,255,.36); background: repeating-linear-gradient(90deg, transparent 0 44px, rgba(255,255,255,.12) 45px 46px); }
-.runner-travel { position: absolute; left: 8%; bottom: 4px; width: 44px; height: 54px; animation: runner-travel 8s linear infinite alternate; }
+.runner-travel { position: absolute; left: 0; bottom: 4px; width: 44px; height: 54px; animation: runner-travel 5s linear infinite alternate; }
 .runner-travel:has(.stick-runner.jumping, .stick-runner.fallen, .stick-runner.getting-up) { animation-play-state: paused; }
 .stick-runner { position: relative; display: block; width: 44px; height: 54px; transform-origin: center bottom; animation: runner-bob .38s ease-in-out infinite alternate; }
 .runner-head { position: absolute; left: 23px; top: 1px; width: 12px; height: 12px; border: 3px solid var(--lime); border-radius: 50%; }
@@ -245,7 +245,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .stick-runner.jumping { animation: runner-jump .65s ease-in-out forwards; }
 .stick-runner.fallen { animation: runner-fall .7s ease-in-out forwards; }
 .stick-runner.getting-up { animation: runner-rise .7s ease-in-out forwards; }
-@keyframes runner-travel { from { left: 8%; } to { left: 86%; } }
+@keyframes runner-travel { from { left: 0; } to { left: calc(100% - 44px); } }
 @keyframes runner-bob { to { translate: 0 -3px; } }
 @keyframes arm-swing { to { rotate: 70deg; } }
 @keyframes leg-swing { to { rotate: -60deg; } }
