@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import 'leaflet/dist/leaflet.css'
 import type { Metadata, Viewport } from 'next'
+import PWAInstall from '@/components/pwa-install'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,25 +18,28 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/icon.png',
+        sizes: '512x512',
+        type: 'image/png',
       },
     ],
     apple: '/apple-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'RUN FREE',
   },
 }
 
 export const viewport: Viewport = {
   colorScheme: 'light',
   themeColor: '#0e1250',
+  viewportFit: 'cover',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
@@ -49,8 +53,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="RUN FREE" />
       </head>
       <body className="antialiased">
+        <PWAInstall />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
