@@ -26,7 +26,7 @@ export default function RunFreeSite() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [runnerAction, setRunnerAction] = useState<'running' | 'jumping' | 'fallen' | 'getting-up'>('running')
+  const [runnerAction, setRunnerAction] = useState<'running' | 'falling' | 'getting-up'>('running')
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
   const { mutate } = useSWRConfig()
   const { data: participantCount = 0 } = useSWR<number>('public-runner-count', async () => {
@@ -100,10 +100,9 @@ export default function RunFreeSite() {
 
   function playRunnerAction() {
     if (runnerAction !== 'running') return
-    setRunnerAction('jumping')
-    window.setTimeout(() => setRunnerAction('fallen'), 450)
-    window.setTimeout(() => setRunnerAction('getting-up'), 1250)
-    window.setTimeout(() => setRunnerAction('running'), 1900)
+    setRunnerAction('falling')
+    window.setTimeout(() => setRunnerAction('getting-up'), 850)
+    window.setTimeout(() => setRunnerAction('running'), 1600)
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -202,8 +201,8 @@ export default function RunFreeSite() {
 
       <div className="marquee" aria-label="Run free. Say no to drugs. Say yes to life."><div className="marquee-track">{Array.from({ length: 4 }, (_, i) => <span key={i}>RUN FREE <b>✳</b> SAY NO TO DRUGS <b>✳</b> SAY YES TO LIFE <b>✳</b> </span>)}</div></div>
 
-      <button type="button" className="runner-strip" onClick={playRunnerAction} aria-label="Tap to make the runner jump, fall, get up, and continue running">
-        <span className="runner-instruction">TAP THE RUNNER TO CHEER THEM ON</span><span className="runner-track" aria-hidden="true"><span className="runner-travel"><span className={`stick-runner ${runnerAction}`}><i className="runner-head"/><i className="runner-body"/><i className="runner-arm arm-one"/><i className="runner-arm arm-two"/><i className="runner-leg leg-one"/><i className="runner-leg leg-two"/></span></span></span><span className="runner-track-label">EVERY STEP MOVES US FORWARD</span>
+      <button type="button" className="runner-strip" onClick={playRunnerAction} aria-label="Touch the runner to trigger a fall and recovery animation">
+        <span className="runner-instruction">TOUCH THE RUNNER TO MAKE IT FALL</span><span className="runner-track" aria-hidden="true"><span className="runner-travel"><img className={`runner-image ${runnerAction}`} src="/stickman-running-falling.gif" alt="" draggable={false} /></span></span><span className="runner-track-label">EVERY STEP MOVES US FORWARD</span>
       </button>
 
       <section className="section why-section" id="why">
