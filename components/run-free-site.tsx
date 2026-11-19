@@ -13,7 +13,7 @@ const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'PG / Other']
 const supabase = createClient()
 type Announcement = { id: string; title: string; message: string; created_at: string }
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> }
-type Runner = { user_id: string; runner_number: number; full_name: string; email: string; phone: string; is_mbc: boolean; affiliation_kind: string; department: string | null; year_of_study: string | null; created_at: string }
+type Runner = { user_id: string; runner_number: number; full_name: string; email: string; phone: string; is_mbc: boolean; affiliation_kind: string; department: string | null; year_of_study: string | null; place_of_living: string | null; emergency_phone: string | null; created_at: string }
 
 
 export default function RunFreeSite() {
@@ -46,7 +46,7 @@ export default function RunFreeSite() {
     return (data ?? []) as Announcement[]
   })
   const { data: runners = [] } = useSWR<Runner[]>(userId && isAdmin ? ['runners', userId] : null, async () => {
-    const { data, error } = await supabase.from('runner_profiles').select('user_id,runner_number,full_name,email,phone,is_mbc,affiliation_kind,department,year_of_study,created_at').eq('is_confirmed', true).order('runner_number', { ascending: true })
+    const { data, error } = await supabase.from('runner_profiles').select('user_id,runner_number,full_name,email,phone,is_mbc,affiliation_kind,department,year_of_study,place_of_living,emergency_phone,created_at').eq('is_confirmed', true).order('runner_number', { ascending: true })
     if (error) throw error
     return (data ?? []) as Runner[]
   }, { refreshInterval: 30000 })
@@ -66,7 +66,7 @@ export default function RunFreeSite() {
       setInstallPrompt(event as InstallPromptEvent)
     }
     window.addEventListener('beforeinstallprompt', captureInstallPrompt)
-    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { setUser(data.session?.user ?? null); if (data.session?.user) void provisionOrganizerAccess(data.session.user); setAuthReady(true) })
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { setUser(data.session?.user ?? null); if (data.session?.user) void provisionOrganizerAccess(data.session.user).catch(() => setError('Organizer access could not be verified. Please sign out and sign in again.')); setAuthReady(true) })
     const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => setUser(session?.user ?? null))
     return () => {
       listener.subscription.unsubscribe()
@@ -82,9 +82,11 @@ export default function RunFreeSite() {
   }
 
   async function provisionOrganizerAccess(currentUser: User) {
-    if (currentUser.email?.toLowerCase() !== 'ananthuk012@gmail.com') return
-    await supabase.rpc('claim_run_free_admin')
-    void mutate(['admin', currentUser.id])
+    if (currentUser.email?.toLowerCase() !== 'ananthuk012@gmail.com') return false
+    const { data, error: claimError } = await supabase.rpc('claim_run_free_admin')
+    if (claimError) throw claimError
+    if (data) void mutate(['admin', currentUser.id], true)
+    return Boolean(data)
   }
 
   useEffect(() => {
@@ -113,7 +115,9 @@ export default function RunFreeSite() {
       if (loginMode) {
         const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
         if (authError) throw authError
-        setUser(data.user); await provisionOrganizerAccess(data.user); setMessage('Welcome back. You are signed in.')
+        setUser(data.user)
+        const hasOrganizerAccess = await provisionOrganizerAccess(data.user)
+        setMessage(hasOrganizerAccess ? 'Organizer access is ready. The participant list and announcement tools are available below.' : 'Welcome back. You are signed in.')
       } else if (organizerMode) {
         if (email !== 'ananthuk012@gmail.com') throw new Error('Organizer setup is available only for the designated organizer email.')
         const { data, error: authError } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback` } })
@@ -184,6 +188,9 @@ export default function RunFreeSite() {
       </header>
 
       <section className="hero" id="home">
+        <video className="hero-video" autoPlay muted loop playsInline aria-hidden="true" tabIndex={-1}>
+          <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/motion_video_99307356-6aQVaZgezKbAiC8zBkZL5kGafIvxd4.mp4" type="video/mp4" />
+        </video>
         <div className="hero-glow" />
         <div className="hero-lines" />
         <div className="hero-content">
@@ -201,7 +208,7 @@ export default function RunFreeSite() {
       <div className="marquee" aria-label="Run free. Say no to drugs. Say yes to life."><div className="marquee-track">{Array.from({ length: 4 }, (_, i) => <span key={i}>RUN FREE <b>✳</b> SAY NO TO DRUGS <b>✳</b> SAY YES TO LIFE <b>✳</b> </span>)}</div></div>
 
       <button type="button" className="runner-strip" onClick={playRunnerAction} aria-label="Tap to make the runner jump, fall, get up, and continue running">
-        <span className="runner-instruction">TAP THE RUNNER TO CHEER THEM ON</span><span className="runner-track" aria-hidden="true"><span className={`stick-runner ${runnerAction}`}><i className="runner-head"/><i className="runner-body"/><i className="runner-arm arm-one"/><i className="runner-arm arm-two"/><i className="runner-leg leg-one"/><i className="runner-leg leg-two"/></span></span><span className="runner-track-label">EVERY STEP MOVES US FORWARD</span>
+        <span className="runner-instruction">TAP THE RUNNER TO CHEER THEM ON</span><span className="runner-track" aria-hidden="true"><span className="runner-travel"><span className={`stick-runner ${runnerAction}`}><i className="runner-head"/><i className="runner-body"/><i className="runner-arm arm-one"/><i className="runner-arm arm-two"/><i className="runner-leg leg-one"/><i className="runner-leg leg-two"/></span></span></span><span className="runner-track-label">EVERY STEP MOVES US FORWARD</span>
       </button>
 
       <section className="section why-section" id="why">
@@ -223,11 +230,11 @@ export default function RunFreeSite() {
             <div className="signed-in-top"><div><div className="section-kicker"><span>WELCOME</span> — RUNNER ACCOUNT</div><h3>Hey, {greeting}.</h3></div><button type="button" className="text-button" onClick={signOut}>Sign out</button></div>
             <div className="account-status"><span className="status-check">✓</span><div><strong>{isAdmin ? 'Organizer access is active.' : 'You’re on the list.'}</strong><p>Signed in as {user.email}. {runnerProfile?.runner_number ? <>Your participant number is <b className="participant-number">RF{String(runnerProfile.runner_number).padStart(3, '0')}</b>. </> : isAdmin ? 'This account is not counted as a participant. ' : 'Loading your participant number. ' }Organiser updates will appear here live.</p></div></div>
             {message && <p className="form-message" role="status">{message}</p>}{error && <p className="form-error" role="alert">{error}</p>}
-            <div className="updates-heading"><span className="live-dot" /> ORGANISER UPDATES <span className="updates-live">LIVE</span></div>
+            <div className="updates-heading"><span className="live-dot" /> NOTIFICATIONS <span className="updates-count">{announcements.length} {announcements.length === 1 ? 'UPDATE' : 'UPDATES'}</span><span className="updates-live">LIVE</span></div>
             {announcements.length ? <div className="announcement-list">{(announcements as Announcement[]).map((notice) => <article className="announcement" key={notice.id}><div className="announcement-date">{new Date(notice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div><h4>{notice.title}</h4><p>{notice.message}</p></article>)}</div> : <div className="empty-updates">No updates yet. Check back here for announcements from the organisers.</div>}
-            {isAdmin && <div className="admin-panel"><div className="admin-heading"><div><span className="section-kicker">ADMIN DESK</span><h3>Runner monitor</h3></div><span className="admin-count">{(runners as Runner[]).length} registered</span></div><div className="runner-table-wrap"><table className="runner-table"><thead><tr><th>Runner ID</th><th>Runner</th><th>Email</th><th>Phone</th><th>Affiliation</th><th>Registered</th></tr></thead><tbody>{(runners as Runner[]).map((runner) => <tr key={runner.user_id}><td><b className="participant-number">RF{String(runner.runner_number).padStart(3, '0')}</b></td><td>{runner.full_name}</td><td>{runner.email}</td><td>{runner.phone}</td><td>{runner.is_mbc ? `${runner.affiliation_kind}${runner.department ? ` · ${runner.department}` : ''}${runner.year_of_study ? ` · ${runner.year_of_study}` : ''}` : 'Community'}</td><td>{new Date(runner.created_at).toLocaleDateString('en-IN')}</td></tr>)}</tbody></table></div><form className="notice-form" onSubmit={publishNotice}><label>Post an update<input value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} maxLength={120} required placeholder="Update title" /></label><label>Message<textarea value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Write an update for registered runners…" /></label><button className="button button-dark" type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish update'} <span>↗</span></button></form></div>}
+            {isAdmin && <div className="admin-panel"><div className="admin-heading"><div><span className="section-kicker">ADMIN DESK</span><h3>Runner monitor</h3></div><span className="admin-count">{(runners as Runner[]).length} registered</span></div><div className="runner-table-wrap"><table className="runner-table"><thead><tr><th>Runner ID</th><th>Runner</th><th>Email</th><th>Phone</th><th>Affiliation</th><th>Place</th><th>Extra contact</th><th>Registered</th></tr></thead><tbody>{(runners as Runner[]).map((runner) => <tr key={runner.user_id}><td><b className="participant-number">RF{String(runner.runner_number).padStart(3, '0')}</b></td><td>{runner.full_name}</td><td>{runner.email}</td><td>{runner.phone}</td><td>{runner.is_mbc ? `${runner.affiliation_kind}${runner.department ? ` · ${runner.department}` : ''}${runner.year_of_study ? ` · ${runner.year_of_study}` : ''}` : 'Community'}</td><td>{runner.place_of_living || '—'}</td><td>{runner.emergency_phone || '—'}</td><td>{new Date(runner.created_at).toLocaleDateString('en-IN')}</td></tr>)}</tbody></table></div><form className="notice-form" onSubmit={publishNotice}><label>Post an update<input value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} maxLength={120} required placeholder="Update title" /></label><label>Message<textarea value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Write an update for registered runners…" /></label><button className="button button-dark" type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish update'} <span>↗</span></button></form></div>}
           </> : <>
-            <div className="form-card-head"><div className="step-mark">RUN FREE <span>/ {organizerMode ? 'ORGANIZER ACCESS' : 'RUNNER REGISTRATION'}</span></div><h3>{organizerMode ? 'Organizer access.' : loginMode ? 'Welcome back.' : 'Join the starting line.'}</h3><p>{organizerMode ? 'Create the designated organizer account. Participant details are not collected for admin access.' : loginMode ? 'Sign in to see your registration and event updates.' : 'Tell us a little about yourself to register.'}</p></div>
+            <div className="form-card-head"><div className="step-mark">RUN FREE <span>/ {organizerMode ? 'ORGANIZER ACCESS' : 'RUNNER REGISTRATION'}</span></div><h3>{organizerMode ? 'Organizer access.' : loginMode ? 'Welcome back.' : 'Join the starting line.'}</h3><p>{organizerMode ? (loginMode ? 'Sign in with the designated organizer account to open the admin desk.' : 'Create the designated organizer account. Participant details are not collected for admin access.') : loginMode ? 'Sign in to see your registration and event updates.' : 'Tell us a little about yourself to register.'}</p></div>
             <form className="registration-form" onSubmit={handleAuth}>
               {!loginMode && !organizerMode && <>
                 <label>Full name<input name="full_name" type="text" autoComplete="name" minLength={2} maxLength={80} placeholder="Your full name" required /></label>
@@ -244,9 +251,9 @@ export default function RunFreeSite() {
                 <label>Type your full name as your signature<input name="signature_name" type="text" minLength={2} maxLength={80} placeholder="Your full name" required /></label>
               </>}
               {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="form-message" role="status">{message}</p>}
-              <button className="button button-dark form-submit" disabled={busy} type="submit">{busy ? 'Please wait…' : organizerMode ? 'Create organizer account' : loginMode ? 'Sign in' : 'Create my account'} <span>↗</span></button>
+              <button className="button button-dark form-submit" disabled={busy} type="submit">{busy ? 'Please wait…' : organizerMode ? (loginMode ? 'Sign in to admin desk' : 'Create organizer account') : loginMode ? 'Sign in' : 'Create my account'} <span>↗</span></button>
             </form>
-            <p className="form-switch">{organizerMode ? <>Need to register for the run? <button type="button" onClick={() => { setOrganizerMode(false); setLoginMode(false); setError(''); setMessage('') }}>Participant registration</button></> : <>{loginMode ? 'New to the run?' : 'Already registered?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create an account' : 'Sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(true); setLoginMode(false); setError(''); setMessage('') }}>Organizer account setup</button></>}</p>
+            <p className="form-switch">{organizerMode ? <> {loginMode ? 'Need an organizer account?' : 'Already set up as organizer?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create organizer account' : 'Organizer sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(false); setLoginMode(false); setError(''); setMessage('') }}>Participant registration</button></> : <>{loginMode ? 'New to the run?' : 'Already registered?'} <button type="button" onClick={() => { setLoginMode(!loginMode); setError(''); setMessage('') }}>{loginMode ? 'Create an account' : 'Sign in'}</button>{' · '}<button type="button" onClick={() => { setOrganizerMode(true); setLoginMode(false); setError(''); setMessage('') }}>Organizer access</button></>}</p>
           </>}
         </div>
       </div></section>
