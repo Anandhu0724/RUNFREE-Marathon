@@ -70,7 +70,10 @@ export default function RunFreeSite() {
     }
     window.addEventListener('beforeinstallprompt', captureInstallPrompt)
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { setUser(data.session?.user ?? null); if (data.session?.user) void provisionOrganizerAccess(data.session.user).catch(() => setError('Organizer access could not be verified. Please sign out and sign in again.')); setAuthReady(true) })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => setUser(session?.user ?? null))
+    const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
+      setUser(session?.user ?? null)
+      if (event === 'SIGNED_IN') void mutate('public-runner-count')
+    })
     return () => {
       listener.subscription.unsubscribe()
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
