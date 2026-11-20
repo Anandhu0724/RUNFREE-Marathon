@@ -8,8 +8,8 @@ import type { Session, User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
 const RunFreeMap = dynamic(() => import('@/components/run-free-map'), { ssr: false, loading: () => <div className="map-loading">Loading route map…</div> })
-const departments = ['Civil Engineering', 'Mechanical Engineering', 'Electrical & Electronics Engineering', 'Electronics & Communication Engineering', 'Computer Science & Engineering', 'Other']
-const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'PG / Other']
+const departments = ['Civil Engineering', 'Mechanical Engineering', 'Electrical & Electronics Engineering', 'Electronics & Communication Engineering', 'Computer Science & Engineering', 'Computer Science & AI', 'Other']
+const years = ['1st Year', '2nd Year', '3rd Year', '4th Year']
 const supabase = createClient()
 type Announcement = { id: string; title: string; message: string; created_at: string }
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }> }
