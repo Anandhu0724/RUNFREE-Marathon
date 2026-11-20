@@ -136,7 +136,7 @@ export default function RunFreeSite() {
         const { data, error: authError } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: { full_name: fullName, signature_name: signature, phone, is_mbc: affiliation, affiliation_kind: kind, department, year_of_study: year, place_of_living: place, emergency_phone: emergency || '', agreement_accepted: true },
           },
         })
