@@ -7,6 +7,8 @@ export async function GET(request: Request) {
   const code = url.searchParams.get('code')
   const cookieStore = await cookies()
 
+  let registration = 'confirmation-error'
+
   if (code) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,8 +20,12 @@ export async function GET(request: Request) {
         },
       },
     )
-    await supabase.auth.exchangeCodeForSession(code)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) registration = 'confirmed'
   }
 
-  return NextResponse.redirect(new URL('/#register', url.origin))
+  const destination = new URL('/', url.origin)
+  destination.searchParams.set('registration', registration)
+  destination.hash = 'register'
+  return NextResponse.redirect(destination)
 }

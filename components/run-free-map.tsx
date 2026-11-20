@@ -3,10 +3,27 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 
-const start: L.LatLngExpression = [9.575, 76.973]
-const finish: L.LatLngExpression = [9.592, 76.991]
-const route: L.LatLngExpression[] = [start, [9.579, 76.978], [9.584, 76.982], [9.588, 76.987], finish]
-const mapCenter: L.LatLngExpression = [9.584, 76.982]
+const start: L.LatLngExpression = [9.582578, 76.97107]
+const pallikunnu: L.LatLngExpression = [9.59831, 76.96825]
+const finish: L.LatLngExpression = [9.586024, 76.983061]
+const route: L.LatLngExpression[] = [
+  start,
+  [9.5843, 76.9701],
+  [9.5882, 76.9691],
+  [9.5927, 76.9686],
+  [9.5961, 76.9683],
+  pallikunnu,
+  [9.5987, 76.9701],
+  [9.5972, 76.9726],
+  [9.5945, 76.9753],
+  [9.5918, 76.9781],
+  [9.5893, 76.9804],
+  finish,
+]
+const refreshmentStops: { point: L.LatLngExpression; distance: number }[] = [
+  { point: [9.5946, 76.9685], distance: 2 },
+  { point: [9.5901, 76.9795], distance: 4 },
+]
 const streetTiles = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const satelliteTiles = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
@@ -19,17 +36,19 @@ export default function RunFreeMap() {
 
   useEffect(() => {
     if (!elementRef.current) return
-    const map = L.map(elementRef.current, { center: mapCenter, zoom: 14, scrollWheelZoom: false, zoomControl: false })
+    const map = L.map(elementRef.current, { center: start, zoom: 14, scrollWheelZoom: false, zoomControl: false })
     mapRef.current = map
     L.control.zoom({ position: 'bottomright' }).addTo(map)
     tileLayerRef.current = L.tileLayer(streetTiles, { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }).addTo(map)
-    L.polyline(route, { color: '#1479ff', weight: 7, opacity: 0.95 }).addTo(map)
+    L.polyline(route, { color: '#ec3047', weight: 8, opacity: 0.96 }).addTo(map)
     L.polyline(route, { color: '#ffffff', weight: 2, dashArray: '7 10', opacity: 0.95 }).addTo(map)
     L.circle(start, { radius: 65, color: '#11174f', fillColor: '#11174f', fillOpacity: 1 }).addTo(map).bindTooltip('START · Kuttikkanam', { permanent: true, direction: 'top', offset: [0, -12] })
+    L.circle(pallikunnu, { radius: 50, color: '#ec3047', fillColor: '#ffffff', fillOpacity: 1 }).addTo(map).bindTooltip('VIA · Pallikunnu', { permanent: true, direction: 'top', offset: [0, -12] })
     L.circle(finish, { radius: 65, color: '#9bf03c', fillColor: '#9bf03c', fillOpacity: 1 }).addTo(map).bindTooltip('FINISH · MBCCET', { permanent: true, direction: 'top', offset: [0, -12] })
-    route.slice(1, 3).forEach((point, index) => {
-      L.circle(point, { radius: 35, color: '#11174f', fillColor: '#9bf03c', fillOpacity: 1 }).addTo(map).bindTooltip(`Refreshment point ${index + 1}`)
+    refreshmentStops.forEach(({ point, distance }) => {
+      L.circle(point, { radius: 35, color: '#11174f', fillColor: '#9bf03c', fillOpacity: 1 }).addTo(map).bindTooltip(`${distance} KM · WATER`)
     })
+    map.fitBounds(L.latLngBounds(route), { padding: [28, 28] })
     return () => {
       map.remove()
       mapRef.current = null
@@ -63,7 +82,7 @@ export default function RunFreeMap() {
           {satellite ? 'Street map' : 'Satellite'}
         </button>
       </div>
-      <div ref={elementRef} className="leaflet-map" role="img" aria-label="Indicative 5 kilometre route from Kuttikkanam Town to MBCCET, with refreshment stops at two and four kilometres" />
+      <div ref={elementRef} className="leaflet-map" role="img" aria-label="Indicative 5 kilometre route from Kuttikkanam Town via Pallikunnu to MBCCET, with water stops at two and four kilometres" />
       <button className="map-zoom" type="button" onClick={toggleZoom} aria-pressed={zoom}>
         {zoom ? 'Scroll map to zoom: on' : 'Click to enable map zoom'}
       </button>

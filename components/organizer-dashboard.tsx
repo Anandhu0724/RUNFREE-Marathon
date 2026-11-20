@@ -10,17 +10,10 @@ import { createClient } from '@/lib/supabase/client'
 type Announcement = { id: string; title: string; message: string; created_at: string }
 type Runner = {
   user_id: string
-  runner_number: number | null
   full_name: string
-  email: string
   phone: string
   is_mbc: boolean
   affiliation_kind: string
-  department: string | null
-  year_of_study: string | null
-  place_of_living: string | null
-  emergency_phone: string | null
-  created_at: string
 }
 
 const organizerEmail = 'ananthuk012@gmail.com'
@@ -51,7 +44,7 @@ export default function OrganizerDashboard() {
     return (data ?? []) as Announcement[]
   }, { refreshInterval: 30000 })
   const { data: runners = [], error: runnersError, mutate: refreshRunners } = useSWR<Runner[]>(userId && isAdmin ? ['organizer-runners', userId] : null, async () => {
-    const { data, error: queryError } = await supabase.from('runner_profiles').select('user_id,runner_number,full_name,email,phone,is_mbc,affiliation_kind,department,year_of_study,place_of_living,emergency_phone,created_at').eq('is_confirmed', true).order('runner_number', { ascending: true })
+    const { data, error: queryError } = await supabase.from('runner_profiles').select('user_id,full_name,phone,is_mbc,affiliation_kind').order('created_at', { ascending: false })
     if (queryError) throw queryError
     return (data ?? []) as Runner[]
   }, { refreshInterval: 30000 })
@@ -215,7 +208,7 @@ export default function OrganizerDashboard() {
             {(error || message) && <p className={error ? 'organizer-alert is-error' : 'organizer-alert'} role={error ? 'alert' : 'status'}>{error || message}</p>}
 
             <section className="organizer-stats" aria-label="Event overview">
-              <article className="organizer-stat"><span>CONFIRMED RUNNERS</span><strong>{runners.length}</strong><small>Live registration list</small></article>
+              <article className="organizer-stat"><span>TOTAL REGISTRATIONS</span><strong>{runners.length}</strong><small>All submitted sign-ups</small></article>
               <article className="organizer-stat"><span>EVENT UPDATES</span><strong>{announcements.length}</strong><small>Visible to signed-in runners</small></article>
               <article className="organizer-stat organizer-stat-accent"><span>ACCOUNT</span><strong>ACTIVE</strong><small>{user.email}</small></article>
             </section>
@@ -224,22 +217,20 @@ export default function OrganizerDashboard() {
               <section className="organizer-card organizer-roster">
                 <div className="organizer-card-heading">
                   <div><p className="organizer-kicker">REGISTRATIONS</p><h2>Runner roster</h2></div>
-                  <span className="organizer-count">{runners.length} confirmed</span>
+                  <span className="organizer-count">{runners.length} registered</span>
                 </div>
                 {runnersError ? <p className="organizer-inline-error" role="alert">Runner records could not be loaded. Try refreshing.</p> : runners.length ? (
-                  <div className="organizer-table-scroll" role="region" aria-label="Confirmed runner registrations" tabIndex={0}>
+                  <div className="organizer-table-scroll" role="region" aria-label="Participant registrations" tabIndex={0}>
                     <table className="organizer-table">
-                      <caption className="sr-only">Confirmed RUN FREE runner registrations and contact details</caption>
-                      <thead><tr><th scope="col">Runner ID</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Affiliation</th><th scope="col">Place</th><th scope="col">Emergency contact</th><th scope="col">Registered</th></tr></thead>
+                      <caption className="sr-only">RUN FREE participant names, phone numbers, and categories</caption>
+                      <thead><tr><th scope="col">Participant name</th><th scope="col">Phone number</th><th scope="col">Category</th></tr></thead>
                       <tbody>{runners.map((runner) => <tr key={runner.user_id}>
-                        <td><b className="participant-number">{runner.runner_number ? `RF${String(runner.runner_number).padStart(3, '0')}` : '—'}</b></td>
-                        <td>{runner.full_name}</td><td>{runner.email}</td><td>{runner.phone}</td>
-                        <td>{runner.is_mbc ? `${runner.affiliation_kind}${runner.department ? ` · ${runner.department}` : ''}${runner.year_of_study ? ` · ${runner.year_of_study}` : ''}` : 'Community'}</td>
-                        <td>{runner.place_of_living || '—'}</td><td>{runner.emergency_phone || '—'}</td><td>{formatDate(runner.created_at)}</td>
+                        <td>{runner.full_name}</td><td>{runner.phone}</td>
+                        <td>{runner.is_mbc ? runner.affiliation_kind === 'faculty' ? 'MBC faculty' : 'MBC student' : 'Outsider'}</td>
                       </tr>)}</tbody>
                     </table>
                   </div>
-                ) : <div className="organizer-empty">No confirmed registrations yet. New runners will appear here automatically.</div>}
+                ) : <div className="organizer-empty">No registrations yet. New sign-ups will appear here automatically.</div>}
                 <p className="organizer-private-note">Registration details are visible only to authorized organizers.</p>
               </section>
 
