@@ -1,5 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+export const SUPABASE_URL = 'https://rzjwtiefidiwuurjsuxf.supabase.co'
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_eHrGcBr5y8CdrhKk-YPmpw_uLMP1AG_'
+
 let browserClient: ReturnType<typeof createBrowserClient> | undefined
 const missingConfigurationError = new Error('Supabase is not configured for this environment.')
 const unavailableClient = {
@@ -29,8 +32,8 @@ const unavailableClient = {
 } as unknown as ReturnType<typeof createBrowserClient>
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? SUPABASE_PUBLISHABLE_KEY
   if (!url || !key) return unavailableClient
 
   browserClient ??= createBrowserClient(
