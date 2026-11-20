@@ -32,9 +32,11 @@ const unavailableClient = {
 } as unknown as ReturnType<typeof createBrowserClient>
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? SUPABASE_PUBLISHABLE_KEY
-  if (!url || !key) return unavailableClient
+  const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const configuredKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  const isExpectedProject = !configuredUrl || configuredUrl === SUPABASE_URL
+  const url = SUPABASE_URL
+  const key = isExpectedProject ? (configuredKey ?? SUPABASE_PUBLISHABLE_KEY) : SUPABASE_PUBLISHABLE_KEY
 
   browserClient ??= createBrowserClient(
     url,

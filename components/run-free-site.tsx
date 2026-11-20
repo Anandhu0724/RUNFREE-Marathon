@@ -41,9 +41,9 @@ export default function RunFreeSite() {
     return (data ?? []) as Announcement[]
   })
   const { data: participantCount } = useSWR<number>('participant-count', async () => {
-    const { data, error } = await supabase.from('runner_profiles').select('user_id').order('created_at', { ascending: false })
+    const { count, error } = await supabase.from('runner_profiles').select('user_id', { count: 'exact', head: true })
     if (error) throw error
-    return data?.length ?? 0
+    return count ?? 0
   })
   const { data: runners = [] } = useSWR<Runner[]>(userId && isAdmin ? ['runners', userId] : null, async () => {
     const { data, error } = await supabase.from('runner_profiles').select('user_id,full_name,phone,is_mbc,affiliation_kind').order('created_at', { ascending: false })
