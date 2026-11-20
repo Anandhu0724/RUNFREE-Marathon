@@ -26,6 +26,8 @@ export default function RunFreeSite() {
   const [memberType, setMemberType] = useState('student')
   const [message, setMessage] = useState('')
   const [registrationResult, setRegistrationResult] = useState<'confirmed' | 'confirmation-error' | ''>('')
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [resendingConfirmation, setResendingConfirmation] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
@@ -142,21 +144,34 @@ export default function RunFreeSite() {
           },
         })
         if (authError) throw authError
-        if (data.session) { setUser(data.user); setMessage('You are registered. Welcome to RUN FREE!') }
-        else setMessage('Registration started. Check your email to confirm your account and finish signing in.')
+        if (data.session) { setUser(data.user); setPendingEmail(''); setMessage('You are registered. Welcome to RUN FREE!') }
+        else { setPendingEmail(email); setMessage('Registration started. Check your email to confirm your account and finish signing in.') }
       }
     } catch (issue) {
       const text = issue instanceof Error ? issue.message : 'Something went wrong. Please try again.'
       const normalized = text.toLowerCase()
       if (issue instanceof Error && ['AuthApiError', 'AuthRetryableFetchError'].includes(issue.name)) {
         if (normalized.includes('invalid login')) setError('Email or password is incorrect.')
-        else if (normalized.includes('already registered') || normalized.includes('already been registered')) setError('Could not create an account with those details. Check your information or sign in if you already registered.')
-        else if (normalized.includes('not confirmed') || normalized.includes('email_not_confirmed')) setError('Please confirm your email using the link we sent before signing in.')
+        else if (normalized.includes('already registered') || normalized.includes('already been registered')) { setPendingEmail(email); setError('This email is already registered. Sign in, or resend its verification email below.') }
+        else if (normalized.includes('not confirmed') || normalized.includes('email_not_confirmed')) { setPendingEmail(email); setError('Please confirm your email using the link we sent before signing in.') }
         else if (normalized.includes('password') && normalized.includes('characters')) setError('Use a password with at least 8 characters.')
-        else if (normalized.includes('rate limit') || normalized.includes('too many')) setError('Too many attempts. Please wait a little and try again.')
+        else if (normalized.includes('rate limit') || normalized.includes('too many')) { setPendingEmail(email); setError('Supabase has temporarily limited verification emails. Wait a few minutes, then use the resend option below once.') }
         else setError('We could not complete account setup right now. Please try again shortly.')
       } else setError(text)
     } finally { setBusy(false) }
+  }
+
+  async function resendConfirmation() {
+    if (!pendingEmail || resendingConfirmation) return
+    setResendingConfirmation(true)
+    setError('')
+    setMessage('')
+    const { error: resendError } = await supabase.auth.resend({ type: 'signup', email: pendingEmail, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } })
+    if (resendError) {
+      const normalized = resendError.message.toLowerCase()
+      setError(normalized.includes('rate limit') || normalized.includes('too many') ? 'Verification is still rate-limited. Wait a few minutes before trying again.' : 'We could not resend the verification email. Check the address and try again.')
+    } else setMessage('A fresh verification link was sent. Check your inbox and spam folder.')
+    setResendingConfirmation(false)
   }
 
   async function publishNotice(event: FormEvent<HTMLFormElement>) {
@@ -221,7 +236,7 @@ export default function RunFreeSite() {
           {!authReady ? <div className="loading-copy">Getting things ready…</div> : user ? <>
             <div className="signed-in-top"><div><div className="section-kicker"><span>WELCOME</span> — RUNNER ACCOUNT</div><h3>Hey, {greeting}.</h3></div><button type="button" className="text-button" onClick={signOut}>Sign out</button></div>
             <div className="account-status"><span className="status-check">✓</span><div><strong>{isAdmin ? 'Organizer access is active.' : runnerProfile?.is_confirmed || registrationResult === 'confirmed' ? 'Your RUN FREE slot is booked.' : 'Confirm your email to book your slot.'}</strong><p>Signed in as {user.email}. {runnerProfile?.runner_number ? <>Your participant number is <b className="participant-number">RF{String(runnerProfile.runner_number).padStart(3, '0')}</b>. </> : isAdmin ? 'This account is not counted as a participant. ' : 'Your participant number is loading. ' }Organiser updates will appear here live.</p></div></div>
-            {message && <p className="form-message" role="status">{message}</p>}{error && <p className="form-error" role="alert">{error}</p>}
+            {message && <p className="form-message" role="status">{message}</p>}{error && <p className="form-error" role="alert">{error}</p>}{pendingEmail && !user && <button className="text-button verification-resend" type="button" onClick={resendConfirmation} disabled={resendingConfirmation}>{resendingConfirmation ? 'Sending verification email…' : `Resend verification to ${pendingEmail}`}</button>}
             <div className="updates-heading"><span className="live-dot" /> NOTIFICATIONS <span className="updates-count">{announcements.length} {announcements.length === 1 ? 'UPDATE' : 'UPDATES'}</span><span className="updates-live">LIVE</span></div>
             {announcements.length ? <div className="announcement-list">{(announcements as Announcement[]).map((notice) => <article className="announcement" key={notice.id}><div className="announcement-date">{new Date(notice.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</div><h4>{notice.title}</h4><p>{notice.message}</p></article>)}</div> : <div className="empty-updates">No updates yet. Check back here for announcements from the organisers.</div>}
             {isAdmin && <div className="admin-panel"><div className="admin-heading"><div><span className="section-kicker">ADMIN DESK</span><h3>Runner monitor</h3></div><span className="admin-count">{(runners as Runner[]).length} registered</span></div><a className="organizer-desk-link" href="/organizer">Open full organizer desk <span>↗</span></a><div className="runner-table-wrap"><table className="runner-table"><thead><tr><th>Participant name</th><th>Phone number</th><th>Category</th></tr></thead><tbody>{(runners as Runner[]).map((runner) => <tr key={runner.user_id}><td>{runner.full_name}</td><td>{runner.phone}</td><td>{runner.is_mbc ? runner.affiliation_kind === 'faculty' ? 'MBC faculty' : 'MBC student' : 'Outsider'}</td></tr>)}</tbody></table></div><form className="notice-form" onSubmit={publishNotice}><label>Post an update<input value={noticeTitle} onChange={(event) => setNoticeTitle(event.target.value)} maxLength={120} required placeholder="Update title" /></label><label>Message<textarea value={noticeBody} onChange={(event) => setNoticeBody(event.target.value)} maxLength={2000} required rows={3} placeholder="Write an update for registered runners…" /></label><button className="button button-dark" type="submit" disabled={busy}>{busy ? 'Publishing…' : 'Publish update'} <span>↗</span></button></form></div>}
