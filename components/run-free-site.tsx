@@ -40,6 +40,11 @@ export default function RunFreeSite() {
     if (error) throw error
     return (data ?? []) as Announcement[]
   })
+  const { data: participantCount } = useSWR<number>('participant-count', async () => {
+    const { data, error } = await supabase.from('runner_profiles').select('user_id').order('created_at', { ascending: false })
+    if (error) throw error
+    return data?.length ?? 0
+  })
   const { data: runners = [] } = useSWR<Runner[]>(userId && isAdmin ? ['runners', userId] : null, async () => {
     const { data, error } = await supabase.from('runner_profiles').select('user_id,full_name,phone,is_mbc,affiliation_kind').order('created_at', { ascending: false })
     if (error) throw error
@@ -167,15 +172,13 @@ export default function RunFreeSite() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand-lockup" href="#home" aria-label="Run Free home"><img className="brand-mark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Report-facvuUvBWb6PFPFCnK8UuvV6ki03ar.png" alt="National Service Scheme emblem" /><span>NSS UNIT 180 <i>·</i> MBCCET</span></a>
+        <a className="brand-lockup" href="#home" aria-label="Run Free home"><img className="brand-mark" src="/nss-logo.png" alt="National Service Scheme emblem" /><span>NSS UNIT 180 <i>·</i> MBCCET</span></a>
         <nav aria-label="Main navigation"><a href="#home">Home</a><a href="#why">Why we run</a><a href="#route">The route</a><a href="#day">The day</a><a href="#prizes">Prizes</a><a href="#sponsor">Sponsor</a><a href="#contact">Contact</a></nav>
         <div className="header-actions">{installPrompt && <button className="install-app" type="button" onClick={installApp}>Install app <span>↓</span></button>}<a className="nav-register" href="#register">Register <span>↗</span></a></div>
       </header>
 
       <section className="hero" id="home">
-        <video className="hero-video" autoPlay muted loop playsInline aria-hidden="true" tabIndex={-1}>
-          <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/motion_video_99307356_1080p-eJtuKH0Iva9VnEZPaztxQf0AR0JhPx.mp4" type="video/mp4" />
-        </video>
+        <img className="hero-video" src="/homepage.gif" alt="Runners moving together on the road" aria-hidden="true" />
         <div className="hero-glow" />
         <div className="hero-lines" />
         <div className="hero-content">
@@ -183,7 +186,7 @@ export default function RunFreeSite() {
           <h1 className="hero-title"><img src="/run-free-hero-lockup.png" alt="Run Free — Marathon Against Substance Abuse" className="hero-lockup" /></h1>
           <p className="hero-tagline">One community. One route. A brighter tomorrow.</p>
           <div className="hero-actions"><a className="button button-dark" href="#register">Join the run <span>↗</span></a><a className="button button-light" href="#route">Explore the route</a></div>
-          <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div></div>
+          <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div><div><strong>{participantCount ?? '—'}</strong><span>participants joined</span></div></div>
         </div>
         <div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /><div className="hero-wave" />
         <a className="scroll-cue" href="#why"><span /> SCROLL TO EXPLORE</a>
@@ -197,7 +200,7 @@ export default function RunFreeSite() {
 
       <section className="section why-section" id="why">
         <div className="section-kicker"><span>01</span> — WHY WE RUN</div>
-        <div className="why-grid"><div className="why-copy"><h2>SAY NO TO DRUGS,<br />SAY <em>YES TO LIFE</em></h2><p>RUN FREE brings students, faculty and our community together for a 5-kilometre stand against substance abuse. Organised by NSS Unit No. 180 with Nasha Mukt Bharat Abhiyan and Toofan Commandos.</p><p className="why-signature">A run for awareness. A movement for change.</p></div><div className="impact-cards"><article className="impact-card-image"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/360_F_1846584061_F3DhSDviVw94bCi0fQwMXRmKeTKKidxe-mxz9JPqKig43ozpedqhcTb8qjPTult.jpg" alt="Young people performing an energetic community dance" /><span className="card-index">01 / MOVE</span><h3>Flashmobs</h3><p>High-energy performances that turn heads and start conversations.</p></article><article className="impact-card-image"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/dcim-drug-street-play--5--oq7PnuqX9DlmG62UiYOuX5ek2DG8u9.jpg" alt="A street theatre performance bringing a community together" /><span className="card-index">02 / SPEAK</span><h3>Nukkad Natak</h3><p>Street theatre bringing the realities of addiction into the open.</p></article><article className="impact-card-image"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp-Image-2026-08-12-at-8.05.12-AM-63rxjr3AismHoFuVNp7Vplm8ybx1uZ.jpeg" alt="Students holding anti-drug awareness signs at a college event" /><span className="card-index">03 / ACT</span><h3>Awareness</h3><p>Community-led action, one thoughtful step at a time.</p></article></div></div>
+        <div className="why-grid"><div className="why-copy"><h2>SAY NO TO DRUGS,<br />SAY <em>YES TO LIFE</em></h2><p>RUN FREE brings students, faculty and our community together for a 5-kilometre stand against substance abuse. Organised by NSS Unit No. 180 with Nasha Mukt Bharat Abhiyan and Toofan Commandos.</p><p className="why-signature">A run for awareness. A movement for change.</p></div><div className="impact-cards"><article className="impact-card-image"><img src="/flashmob.webp" alt="Young people performing an energetic flashmob" /><span className="card-index">01 / MOVE</span><h3>Flashmobs</h3><p>High-energy performances that turn heads and start conversations.</p></article><article className="impact-card-image"><img src="/nukad-natak.webp" alt="A street theatre performance bringing a community together" /><span className="card-index">02 / SPEAK</span><h3>Nukkad Natak</h3><p>Street theatre bringing the realities of addiction into the open.</p></article><article className="impact-card-image"><img src="/awareness.webp" alt="Students sharing anti-drug awareness messages" /><span className="card-index">03 / ACT</span><h3>Awareness</h3><p>Community-led action, one thoughtful step at a time.</p></article></div></div>
       </section>
 
       <section className="route-section" id="route"><div className="section route-layout"><div className="route-intro"><div className="section-kicker"><span>02</span> — THE ROUTE</div><div className="distance">5<span>KM</span></div><h2>KUTTIKKANAM <span>→</span><br />MBC COLLEGE</h2><p>Run 5 km from Kuttikkanam Town via Pallikunnu to MBCCET, with water at 2 km and 4 km.</p><a className="route-link" href="https://www.google.com/maps/dir/?api=1&amp;origin=Kuttikkanam+Town%2C+Kerala&amp;destination=Mar+Baselios+Christian+College+of+Engineering+and+Technology%2C+Peermade&amp;waypoints=Pallikunnu%2C+Kerala&amp;travelmode=walking" target="_blank" rel="noreferrer">Open directions in Google Maps <span>↗</span></a><p className="route-caveat">Map line is indicative. Check Google Maps for turn-by-turn directions.</p></div><RunFreeMap /></div></section>
@@ -206,7 +209,7 @@ export default function RunFreeSite() {
         ['1:30 PM', 'Warm-up & flashmob', 'Get moving with a flashmob before the run.'], ['2:00 PM', 'Inaugural speech', 'A motivational message from the chief guests.'], ['2:15 PM', 'Street play & pledge', 'A Nukkad Natak street play, followed by the anti-drug pledge.'], ['2:30 PM', 'Flag-off · 5 km run', 'The run starts from Kuttikkanam Town, with refreshment points at 2 km and 4 km.'], ['4:00 PM', 'Rest & refreshments', 'Post-run rest and refreshments.'], ['4:15 PM', 'Felicitation', 'Felicitation of the winners.'],
       ].map(([time, title, detail], index) => <details className={`schedule-item ${index === 3 ? 'schedule-featured' : ''}`} key={time} open={index === 3}><summary><span>{time}</span><b>{title}</b><i>+</i></summary><p>{detail}</p></details>)}</div></section>
 
-      <section className="prize-section" id="prizes"><div className="section"><div className="section-kicker"><span>04</span> — PRIZES & FINISHER REWARDS</div><div className="prize-heading"><h2>RUN IT.<br /><em>FINISH IT.</em><br />REMEMBER IT.</h2><p>Complete all 5 km within the official event time limit to earn your finisher rewards.</p></div><div className="prize-cards"><article className="prize-card prize-pool"><span>01 — PRIZE POOL</span><strong>₹3,000</strong><h3>Total prize pool</h3><p>For the RUN FREE 2027 marathon.</p></article><article className="prize-card"><span>02 — FINISHER REWARD</span><h3>Completion medal</h3><p>Earn your medal by completing the 5 km within the official time limit.</p></article><article className="prize-card"><span>03 — FINISHER REWARD</span><h3>Completion certificate</h3><p>Receive a certificate when you finish the 5 km within the official time limit.</p></article></div></div></section>
+      <section className="prize-section" id="prizes"><div className="section"><div className="section-kicker"><span>04</span> — PRIZES & FINISHER REWARDS</div><div className="prize-heading"><h2>RUN IT.<br /><em>FINISH IT.</em><br />REMEMBER IT.</h2><p>Complete all 5 km within the official event time limit to earn your finisher rewards.</p></div><div className="prize-cards"><article className="prize-card prize-pool"><span>01 — PRIZE POOL</span><strong>₹3,000</strong><h3>Total prize pool</h3><p>For the RUN FREE 2027 marathon.</p></article><article className="prize-card prize-image-card"><span>02 — FINISHER REWARD</span><div className="prize-image-frame"><img src="/completion-medals.jpg" alt="Gold, silver and bronze completion medals" /></div><h3>Completion medal</h3><p>Earn your medal by completing the 5 km within the official time limit.</p></article><article className="prize-card prize-image-card"><span>03 — FINISHER REWARD</span><div className="prize-image-frame certificate-frame"><img src="/completion-certificate.png" alt="RUN FREE completion certificate" /></div><h3>Completion certificate</h3><p>Receive a certificate when you finish the 5 km within the official time limit.</p></article></div></div></section>
 
       <section className="pledge-band"><div className="pledge-mark">“</div><p>Every step we run today is a stride toward a brighter, drug-free tomorrow. <em>Let us unite, run with purpose, and create change.</em></p><span>— THE RUN FREE PLEDGE</span></section>
 

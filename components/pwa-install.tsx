@@ -13,22 +13,15 @@ export default function PWAInstall() {
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js')
-        .then((registration) => {
-          console.log('[v0] Service Worker registered:', registration)
-        })
-        .catch((error) => {
-          console.log('[v0] Service Worker registration failed:', error)
-        })
+        .catch(() => undefined)
     }
 
     // Handle app installed
     if ('onappinstalled' in window) {
       window.addEventListener('appinstalled', () => {
-        console.log('[v0] App installed')
         setIsInstalled(true)
         setShowBanner(false)
       })
@@ -62,15 +55,14 @@ export default function PWAInstall() {
       const { outcome } = await installPrompt.userChoice
 
       if (outcome === 'accepted') {
-        console.log('[v0] App installed successfully')
         setShowBanner(false)
       } else {
-        console.log('[v0] App installation dismissed')
+        setShowBanner(false)
       }
 
       setInstallPrompt(null)
-    } catch (error) {
-      console.error('[v0] Installation error:', error)
+    } catch {
+      setShowBanner(false)
     }
   }
 

@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next'
 import 'leaflet/dist/leaflet.css'
 import type { Metadata, Viewport } from 'next'
 import PWAInstall from '@/components/pwa-install'
@@ -14,7 +13,6 @@ export const metadata: Metadata = {
     description: 'A community run from Kuttikkanam Town to MBCCET on 12 January 2027.',
     type: 'website',
   },
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -61,7 +59,6 @@ export default function RootLayout({
       <body className="antialiased">
         <PWAInstall />
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

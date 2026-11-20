@@ -116,6 +116,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .prize-cards { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 12px; }
 .prize-card { min-height: 220px; padding: 24px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; border-radius: 18px; background: white; color: var(--navy); }
 .prize-card > span { margin-bottom: auto; color: #71809a; font-size: 8px; font-weight: 850; letter-spacing: .13em; }
+.prize-image-card { justify-content: flex-start; overflow: hidden; }
+.prize-image-frame { width: calc(100% + 48px); height: 118px; margin: 15px -24px 12px; display: grid; place-items: center; overflow: hidden; background: #edf2f8; }
+.prize-image-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.prize-image-frame:not(.certificate-frame) img { object-fit: cover; }
+.certificate-frame { background: #f7f8fb; }
 .prize-card h3 { margin: 8px 0 6px; font: 22px/1.1 var(--display); text-transform: uppercase; }
 .prize-card p { max-width: 260px; margin: 0; color: #53617b; font-size: 10px; line-height: 1.7; }
 .prize-card.prize-pool { background: var(--lime); }
@@ -271,6 +276,48 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .sponsor-section { padding: 72px 0; }
   .sponsor-layout { grid-template-columns: 1fr; gap: 25px; }
   .sponsor-contact { padding: 25px; }
+}
+
+@media (max-width: 640px) {
+  body { overflow-x: hidden; }
+  .site-header { position: absolute; backdrop-filter: blur(14px); background: rgba(14,18,80,.22); }
+  .brand-lockup { max-width: 58%; overflow: hidden; text-overflow: ellipsis; }
+  .brand-mark { outline-width: 1px; }
+  .nav-register { white-space: nowrap; }
+  .hero { height: 760px; min-height: 0; max-height: none; }
+  .hero-content { margin-top: 15px; }
+  .hero-lockup { width: min(94vw, 430px); }
+  .hero-actions { width: min(100%, 340px); margin-inline: auto; gap: 8px; }
+  .hero-actions .button { flex: 1; min-height: 48px; padding-inline: 12px; font-size: 10px; }
+  .hero-stats { width: min(100%, 360px); margin-inline: auto; }
+  .hero-stats > div { min-height: 67px; display: flex; justify-content: center; }
+  .hero-stats strong { font-size: 18px; }
+  .run-free-signoff { min-height: 106px; padding: 18px 8%; }
+  .run-free-signoff img { width: min(360px, 84vw); }
+  .why-copy h2, .day-heading h2, .register-intro h2 { line-height: .96; }
+  .impact-cards article.impact-card-image { min-height: 238px; }
+  .route-intro > p { font-size: 13px; }
+  .prize-image-frame { height: 155px; margin-top: 14px; }
+  .prize-image-card h3 { font-size: 25px; }
+  .contact-card { padding: 34px 20px; border-radius: 20px; }
+  .contact-actions { flex-direction: column; }
+  .contact-actions .button { width: 100%; }
+  .footer-top { grid-template-columns: 1fr; gap: 28px; }
+  .footer-bottom { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 380px) {
+  .brand-lockup { font-size: 7px; }
+  .brand-mark { width: 29px; height: 29px; }
+  .nav-register { padding-inline: 11px; font-size: 9px; }
+  .hero { height: 735px; }
+  .hero-actions .button { font-size: 9px; }
+  .hero-stats > div { padding-inline: 3px; }
+  .hero-stats span { font-size: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-video { display: none; }
 }
 
 @media (max-width: 640px) {
