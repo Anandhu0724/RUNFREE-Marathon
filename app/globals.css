@@ -213,8 +213,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .contact-card h2 { margin: 14px 0 0; font: clamp(34px, 5vw, 48px) var(--display); }
 .contact-phone { display: block; margin: 8px 0 22px; color: var(--lime); font: clamp(34px, 6vw, 55px) var(--display); }
 .contact-actions { display: flex; justify-content: center; gap: 10px; }
-.site-footer { background: var(--deep); color: white; padding: 55px 6% 20px; }
-.footer-top { display: grid; grid-template-columns: 1.4fr .65fr .8fr; gap: 55px; padding-bottom: 37px; }
+.site-footer { background: var(--deep); color: white; padding: 42px 6% 16px; }
+.footer-top { display: grid; grid-template-columns: 1.4fr .65fr .8fr; gap: 38px; padding-bottom: 28px; }
 .footer-logo { font: 26px var(--display); }
 .footer-logo span { color: var(--lime); font-size: 15px; }
 .footer-top p { max-width: 300px; color: #c1c8df; font-size: 9px; line-height: 1.8; }
@@ -223,11 +223,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .footer-links { display: flex; flex-direction: column; gap: 9px; }
 .footer-links a { color: #e3e7f1; font-size: 9px; }
 .footer-social > a { display: inline-flex; align-items: center; gap: 16px; padding: 11px 16px; border-radius: 100px; background: var(--lime); color: var(--navy); font-size: 9px; font-weight: 850; }
-.footer-social p { margin-top: 17px; }
+.footer-social p { margin-top: 12px; }
 .privacy-details { max-width: 300px; margin-top: 16px; color: #c1c8df; font-size: 9px; line-height: 1.75; }
 .privacy-details summary { width: fit-content; cursor: pointer; color: var(--lime); font-size: 9px; font-weight: 750; }
 .privacy-details p { margin-top: 8px; }
-.footer-bottom { border-top: 1px solid rgba(255,255,255,.16); padding-top: 17px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #9ca8c5; font-size: 7px; }
+.footer-bottom { border-top: 1px solid rgba(255,255,255,.16); padding-top: 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #9ca8c5; font-size: 7px; }
 .footer-bottom a { color: white; font-size: 7px; letter-spacing: .08em; font-weight: 800; }
 @media (min-width: 1200px) { .hero { height: 810px; } }
 @media (max-width: 900px) { .site-header { padding-inline: 4%; } .site-header nav a { padding: 9px 10px; } .why-grid { grid-template-columns: 1fr; gap: 34px; } .impact-cards article { min-height: 175px; } .route-layout { grid-template-columns: .8fr 1.2fr; gap: 28px; } .register-layout { grid-template-columns: 1fr; gap: 32px; } .register-intro h2 { font-size: clamp(52px, 8vw, 76px); } }
@@ -302,8 +302,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .contact-card { padding: 34px 20px; border-radius: 20px; }
   .contact-actions { flex-direction: column; }
   .contact-actions .button { width: 100%; }
-  .footer-top { grid-template-columns: 1fr; gap: 28px; }
-  .footer-bottom { align-items: flex-start; flex-direction: column; }
+  .site-footer { padding: 34px 5% 14px; }
+  .footer-top { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 24px 18px; padding-bottom: 22px; }
+  .footer-top > div:first-child { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 18px; align-items: start; }
+  .footer-logo { grid-column: 1 / -1; font-size: 24px; }
+  .footer-top p { max-width: none; margin: 8px 0 0; font-size: 8px; line-height: 1.55; }
+  .footer-top .footer-address { margin-top: 8px; }
+  .footer-label { margin-bottom: 9px; font-size: 7px; }
+  .footer-links { gap: 5px; }
+  .footer-links a { font-size: 8px; }
+  .footer-social > a { padding: 8px 11px; font-size: 8px; }
+  .footer-social p { margin: 9px 0 0; font-size: 8px; line-height: 1.45; }
+  .privacy-details { margin-top: 9px; font-size: 8px; line-height: 1.5; }
+  .privacy-details summary { font-size: 8px; }
+  .footer-bottom { padding-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; align-items: center; font-size: 6px; }
+  .footer-bottom span:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .footer-bottom a { grid-column: 2; grid-row: 1; font-size: 6px; }
 }
 
 @media (max-width: 380px) {
