@@ -213,6 +213,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .contact-card h2 { margin: 14px 0 0; font: clamp(34px, 5vw, 48px) var(--display); }
 .contact-phone { display: block; margin: 8px 0 22px; color: var(--lime); font: clamp(34px, 6vw, 55px) var(--display); }
 .contact-actions { display: flex; justify-content: center; gap: 10px; }
+.contact-action { min-height: 48px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; font-size: 10px; font-weight: 850; transition: transform .18s ease, box-shadow .18s ease; }
+.contact-action:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(2,7,35,.25); }
+.contact-action svg { width: 16px; height: 16px; stroke-width: 2.4; }
+.contact-action b { font-size: 12px; font-weight: 700; }
+.contact-action-call { background: var(--lime); color: var(--navy); }
+.contact-action-whatsapp { background: #25d366; color: #062d1b; }
 .site-footer { background: var(--deep); color: white; padding: 42px 6% 16px; }
 .footer-top { display: grid; grid-template-columns: 1.4fr .65fr .8fr; gap: 38px; padding-bottom: 28px; }
 .footer-logo { font: 26px var(--display); }
@@ -300,8 +306,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .prize-image-frame { height: 155px; margin-top: 14px; }
   .prize-image-card h3 { font-size: 25px; }
   .contact-card { padding: 34px 20px; border-radius: 20px; }
-  .contact-actions { flex-direction: column; }
-  .contact-actions .button { width: 100%; }
+  .contact-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .contact-action { min-width: 0; min-height: 48px; padding-inline: 8px; border-radius: 11px; font-size: 10px; }
+  .contact-action svg { width: 15px; height: 15px; }
   .site-footer { padding: 34px 5% 14px; }
   .footer-top { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 24px 18px; padding-bottom: 22px; }
   .footer-top > div:first-child { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 18px; align-items: start; }
