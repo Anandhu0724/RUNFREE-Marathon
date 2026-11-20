@@ -29,11 +29,6 @@ export default function RunFreeSite() {
   const [busy, setBusy] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null)
   const { mutate } = useSWRConfig()
-  const { data: participantCount = 0 } = useSWR<number>('public-runner-count', async () => {
-    const { data, error } = await supabase.rpc('get_runner_count')
-    if (error) throw error
-    return Number(data ?? 0)
-  }, { refreshInterval: 30000 })
   const userId = user?.id ?? ''
   const { data: isAdmin = false } = useSWR<boolean>(userId ? ['admin', userId] : null, async () => {
     const { data, error } = await supabase.from('admin_members').select('user_id').eq('user_id', userId).maybeSingle()
@@ -70,10 +65,7 @@ export default function RunFreeSite() {
     }
     window.addEventListener('beforeinstallprompt', captureInstallPrompt)
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => { setUser(data.session?.user ?? null); if (data.session?.user) void provisionOrganizerAccess(data.session.user).catch(() => setError('Organizer access could not be verified. Please sign out and sign in again.')); setAuthReady(true) })
-    const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
-      setUser(session?.user ?? null)
-      if (event === 'SIGNED_IN') void mutate('public-runner-count')
-    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => setUser(session?.user ?? null))
     return () => {
       listener.subscription.unsubscribe()
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
@@ -191,7 +183,7 @@ export default function RunFreeSite() {
           <h1 className="hero-title"><img src="/run-free-hero-lockup.png" alt="Run Free — Marathon Against Substance Abuse" className="hero-lockup" /></h1>
           <p className="hero-tagline">One community. One route. A brighter tomorrow.</p>
           <div className="hero-actions"><a className="button button-dark" href="#register">Join the run <span>↗</span></a><a className="button button-light" href="#route">Explore the route</a></div>
-          <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div><div><strong>{participantCount}</strong><span>participants joined</span></div></div>
+          <div className="hero-stats"><div><strong>12 JAN</strong><span>2027 · 2:30 PM flag-off</span></div><div><strong>5<span className="stat-unit">KM</span></strong><span>Kuttikkanam to MBCCET</span></div></div>
         </div>
         <div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /><div className="hero-wave" />
         <a className="scroll-cue" href="#why"><span /> SCROLL TO EXPLORE</a>
@@ -258,7 +250,7 @@ export default function RunFreeSite() {
 
       <section className="contact-section" id="contact"><div className="contact-card"><div className="section-kicker">QUESTIONS ABOUT THE RUN?</div><h2>LET’S TALK.</h2><a href="tel:+919994420724" className="contact-phone">+91 99944 20724</a><div className="contact-actions"><a className="button button-lime" href="tel:+919994420724">Call us <span>↗</span></a><a className="button button-light" href="https://wa.me/919994420724" target="_blank" rel="noreferrer">WhatsApp</a></div></div></section>
 
-      <footer className="site-footer"><div className="footer-top"><div><a className="footer-logo" href="#home">RUN FREE<span> / 2027</span></a><p>Against Substance Abuse.<br />A community run by NSS Unit No. 180, MBCCET.</p><p className="footer-address">Mar Baselios Christian College of Engineering & Technology, Peermade, Kuttikkanam, Idukki, 685531.</p></div><div className="footer-links"><span className="footer-label">EXPLORE</span><a href="#why">Why we run</a><a href="#route">The route</a><a href="#day">The day</a><a href="#register">Register</a><a href="/organizer">Organizer desk</a></div><div className="footer-social"><span className="footer-label">FOLLOW ALONG</span><a href="https://www.instagram.com/nss_mbc" target="_blank" rel="noopener noreferrer">@nss_mbc <span>↗</span></a><p>Organised with Toofan Commandos & Nasha Mukt Bharat Abhiyan.</p><details className="privacy-details"><summary>Privacy &amp; data use</summary><p>Your name, contact details and affiliation are collected to manage event registration and organiser updates. Registration records are visible only to authorised organisers and you. Email is handled by Supabase Auth. Map tiles may be served by OpenStreetMap or Esri; directions open Google Maps. Contact the organisers to request access or correction.</p></details></div></div><div className="footer-bottom"><span>© 2027 NSS Unit No. 180 · MBCCET</span><span>Run for a cause. Say NO to drugs. Say YES to life.</span><a href="#home">BACK TO TOP ↑</a></div></footer>
+      <footer className="site-footer"><div className="footer-top"><div><a className="footer-logo" href="#home">RUN FREE<span> / 2027</span></a><p>Against Substance Abuse.<br />A community run by NSS Unit No. 180, MBCCET.</p><p className="footer-address"><a href="https://mbccet.ac.in" target="_blank" rel="noopener noreferrer">Mar Baselios Christian College of Engineering &amp; Technology</a>, Peermade, Kuttikkanam, Idukki, 685531.</p></div><div className="footer-links"><span className="footer-label">EXPLORE</span><a href="#why">Why we run</a><a href="#route">The route</a><a href="#day">The day</a><a href="#register">Register</a><a href="/organizer">Organizer desk</a></div><div className="footer-social"><span className="footer-label">FOLLOW ALONG</span><a href="https://www.instagram.com/nss_mbc" target="_blank" rel="noopener noreferrer">@nss_mbc <span>↗</span></a><p>Organised with Toofan Commandos & Nasha Mukt Bharat Abhiyan.</p><details className="privacy-details"><summary>Privacy &amp; data use</summary><p>Your name, contact details and affiliation are collected to manage event registration and organiser updates. Registration records are visible only to authorised organisers and you. Email is handled by Supabase Auth. Map tiles may be served by OpenStreetMap or Esri; directions open Google Maps. Contact the organisers to request access or correction.</p></details></div></div><div className="footer-bottom"><span>© 2027 NSS Unit No. 180 · MBCCET</span><span>Run for a cause. Say NO to drugs. Say YES to life.</span><a href="#home">BACK TO TOP ↑</a></div></footer>
     </main>
   )
 }
